@@ -1,0 +1,53 @@
+volumes:
+  auth-data:
+    external: true
+services:
+  runner:
+    build:
+      context: .
+      args:
+        venv_python: "3.12"
+        alpine_version: "3.18"
+    volumes:
+      - auth-data:/app
+    environment:
+      OPA_URL: http://opa:8181
+      VAULT_URL: http://vault:8200
+      SERVICE_NAME: opa
+      CANDIG_USER_KEY: email
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://opa:8181/v1/data/service/service-info"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    entrypoint:
+      - "bash"
+      - "/app/entrypoint.sh"
+
+  opa:
+    image: openpolicyagent/opa:latest-static
+    ports:
+      - "8181:8181"
+    volumes:
+      - auth-data:/app
+    command:
+      - "run"
+      - "--set=decision_logs.console=true"
+      - "--log-level=info"
+      - "--authentication=token"
+      - "--authorization=basic"
+      - "-s"
+      - "app/permissions_engine/"
+
+  vault:
+    image: hashicorp/vault:1.13
+    ports:
+      - 8200:8200
+    volumes:
+      - auth-data:/vault
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+      - VAULT_DISABLE_MLOCK=true
+    cap_add:
+      - IPC_LOCK
+    command: vault server -config=/vault/config/vault-config.json

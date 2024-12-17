@@ -1,0 +1,324 @@
+openapi: 3.0.0
+info:
+  version: v1.0.0
+  title: 'PCGL Authorization Service'
+  description: 'API for determining authorization in PCGL'
+paths:
+  /service-info:
+    get:
+      summary: Retrieve information about this service
+      description: Returns information about the ingest service
+      operationId: authz_operations.get_service_info
+      responses:
+        200:
+          description: Retrieve info about the ingest service
+          content:
+            application/json:
+              schema:
+                type: object
+  /group/{group_id}:
+    parameters:
+      - in: path
+        name: group_id
+        schema:
+          type: string
+        required: true
+    get:
+      summary: List users in group_id
+      description: List users in group_id
+      operationId: authz_operations.list_group
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: user_ids
+  /service:
+    get:
+      summary: List registered services
+      operationId: authz_operations.list_services
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceRegistration'
+    post:
+      summary: Register service in authorization system
+      operationId: authz_operations.add_service
+      requestBody:
+        $ref: '#/components/requestBodies/ServiceRegistrationRequest'
+      responses:
+        200:
+          description: Success
+  /service/{service_id}:
+    parameters:
+      - in: path
+        name: service_id
+        schema:
+          type: string
+        required: true
+    get:
+      summary: Get registered service
+      operationId: authz_operations.get_service
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRegistration'
+    delete:
+      summary: Remove registered service
+      operationId: authz_operations.remove_service
+      responses:
+        200:
+          description: Success
+  /study:
+    post:
+      summary: Add authorization information for a study
+      description: Add authorization information for a study
+      operationId: authz_operations.add_study_authorization
+      requestBody:
+        $ref: '#/components/requestBodies/StudyAuthorizationRequest'
+      responses:
+          200:
+            description: Success
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/StudyAuthorization'
+    get:
+      summary: List registered studies
+      description: List studies authorized on server
+      operationId: authz_operations.list_study_authorizations
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudyAuthorization'
+  /study/{study_id}:
+    parameters:
+      - in: path
+        name: study_id
+        schema:
+          type: string
+        required: true
+    get:
+      summary: Get authorization information for a study
+      description: Get authorization information for a study
+      operationId: authz_operations.get_study_authorization
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyAuthorization'
+    delete:
+      description: Delete a study
+      operationId: authz_operations.remove_study
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyAuthorization'
+  /user/{user_id}/study:
+    parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+        required: true
+    get:
+      summary: List study authorizations
+      description: List study authorizations for a user
+      operationId: authz_operations.list_studies_for_user
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DACAuthorization'
+    post:
+      summary: Add a study authorization for a user
+      description: Authorize a study for a user (or update a study auth for a user)
+      operationId: authz_operations.authorize_study_for_user
+      requestBody:
+        $ref: '#/components/requestBodies/DACAuthorizationRequest'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DACAuthorization'
+  /user/{user_id}/study/{study_id}:
+    parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: study_id
+        schema:
+          type: string
+        required: true
+    get:
+      summary: Is a user authorized for a study?
+      description: Is a user authorized for a study?
+      operationId: authz_operations.get_study_for_user
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: boolean
+    delete:
+      summary: Remove a study authorization for a user
+      description: Remove a study for a user
+      operationId: authz_operations.remove_study_for_user
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+  /allowed:
+    post:
+      summary: Is the authorized user allowed to perform the requested action?
+      description: Authorize a study for a user (or update a study auth for a user)
+      operationId: authz_operations.is_allowed
+      requestBody:
+        $ref: '#/components/requestBodies/ActionAuthorizationRequest'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+components:
+  requestBodies:
+    ServiceRegistrationRequest:
+      content:
+        'application/json':
+          schema:
+            $ref: "#/components/schemas/ServiceRegistration"
+    StudyAuthorizationRequest:
+      content:
+        'application/json':
+          schema:
+            $ref: "#/components/schemas/StudyAuthorization"
+    DACAuthorizationRequest:
+      content:
+        'application/json':
+          schema:
+            $ref: "#/components/schemas/DACAuthorization"
+    ActionAuthorizationRequest:
+      content:
+        'application/json':
+          schema:
+            type: object
+            properties:
+              action:
+                $ref: "#/components/schemas/Action"
+              studies:
+                description: IDs of the studies for which authorization is being requested
+                type: array
+                items:
+                  type: string
+  schemas:
+    ServiceRegistration:
+      type: object
+      description: PCGL service and its authorizable actions.
+      properties:
+        service_id:
+          type: string
+          description: ID of service
+        readable:
+          type: array
+          description: Actions that allow a user to read data
+          items:
+            $ref: "#/components/schemas/Action"
+        editable:
+          type: array
+          description: Actions that allow a user to edit and delete data
+          items:
+            $ref: "#/components/schemas/Action"
+    StudyAuthorization:
+      type: object
+      description: study and the researchers involved in this study
+      properties:
+        study_id:
+          type: string
+          description: name of the study
+        study_curators:
+          type: array
+          description: list of users who are study curators for this study
+          items:
+            type: string
+        team_members:
+          type: array
+          description: list of users who are original researchers for this study
+          items:
+            type: string
+        creation_date:
+          type: string
+          description: date study was created, for embargo purposes. This may or may not be the date of ingest.
+      required:
+        - study_id
+        - study_curators
+        - team_members
+    DACAuthorization:
+      type: object
+      description: a DAC approval that authorizes a user to access a study for a specified date range
+      properties:
+        study_id:
+          type: string
+        start_date:
+          type: string
+        end_date:
+          type: string
+      required:
+        - study_id
+        - start_date
+        - end_date
+    Action:
+      type: object
+      description: an action for which authorization is requested
+      properties:
+        endpoint:
+          description: path to an endpoint that performs the requested action
+          type: string
+        method:
+          description: the operation to be performed
+          type: string
+          enum:
+            - GET
+            - POST
+            - UPDATE
+            - DELETE
+      required:
+        - endpoint
+        - method
