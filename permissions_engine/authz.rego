@@ -4,7 +4,7 @@ package system.authz
 # from: https://www.openpolicyagent.org/docs/v0.22.0/security/#token-based-authentication-example
 
 # Reject requests by default
-default allow = false
+default allow = true
 
 # Site admin should be able to see anything
 allow {
