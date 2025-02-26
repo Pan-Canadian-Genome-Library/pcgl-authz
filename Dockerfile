@@ -15,17 +15,21 @@ RUN apt-get update && apt-get -y install \
 	vim \
 	git
 
-COPY requirements.txt /app/requirements.txt
+COPY app/requirements.txt /app/requirements.txt
 
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY ./ /app/
+COPY app/ /app/
 
 RUN chown -R pcgl:pcgl /app
 
 USER pcgl
 
 WORKDIR /app/
+
+RUN mkdir -p /app/config
+RUN mkdir -p /app/data
+RUN chmod 755 /app/data
 
 RUN curl -L -o opa https://openpolicyagent.org/downloads/v1.1.0/opa_linux_amd64_static
 
