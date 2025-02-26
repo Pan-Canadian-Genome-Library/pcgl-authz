@@ -1,4 +1,4 @@
-ARG venv_python
+ARG venv_python=3.12
 FROM python:${venv_python}
 
 LABEL Maintainer="PCGL Project"
@@ -27,10 +27,11 @@ USER pcgl
 
 WORKDIR /app/
 
-RUN curl -L -o opa https://openpolicyagent.org/downloads/v0.63.0/opa_linux_amd64_static
+RUN curl -L -o opa https://openpolicyagent.org/downloads/v1.1.0/opa_linux_amd64_static
 
 RUN chmod 755 ./opa
 
 RUN touch /app/initial_setup
 
 ENTRYPOINT pytest
+EXPOSE 1235

@@ -25,7 +25,7 @@ services:
       - "/app/entrypoint.sh"
 
   opa:
-    image: openpolicyagent/opa:latest-static
+    image: openpolicyagent/opa:1.1.0-static
     ports:
       - "8181:8181"
     volumes:
@@ -37,10 +37,13 @@ services:
       - "--authentication=token"
       - "--authorization=basic"
       - "-s"
+      - "--addr=0.0.0.0:8181"
       - "app/permissions_engine/"
 
   vault:
     image: hashicorp/vault:1.13
+    labels:
+     - "pcgl=vault"
     ports:
       - 8200:8200
     volumes:

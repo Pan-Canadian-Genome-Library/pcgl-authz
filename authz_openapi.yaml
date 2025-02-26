@@ -3,6 +3,8 @@ info:
   version: v1.0.0
   title: 'PCGL Authorization Service'
   description: 'API for determining authorization in PCGL'
+servers:
+  - url: /authz
 paths:
   /service-info:
     get:
@@ -128,7 +130,7 @@ paths:
                 $ref: '#/components/schemas/StudyAuthorization'
     delete:
       description: Delete a study
-      operationId: authz_operations.remove_study
+      operationId: authz_operations.remove_study_authorization
       responses:
         200:
           description: Success
@@ -252,13 +254,17 @@ components:
     ServiceRegistration:
       type: object
       description: PCGL service and its authorizable actions.
+      required:
+        - service_id
+        - readable
+        - editable
       properties:
         service_id:
           type: string
           description: ID of service
         readable:
           type: array
-          description: Actions that allow a user to read data
+          description: Actions that allow a user to read data. Note that UPDATE and DELETE are not readable methods.
           items:
             $ref: "#/components/schemas/Action"
         editable:
@@ -309,10 +315,10 @@ components:
       description: an action for which authorization is requested
       properties:
         endpoint:
-          description: path to an endpoint that performs the requested action
+          description: path to an endpoint that performs the requested action. Should be in the form of a GoLang regex, e.g. `/users/?.*`
           type: string
         method:
-          description: the operation to be performed
+          description: the operation to be performed.
           type: string
           enum:
             - GET

@@ -2,49 +2,15 @@
 
 set -Euo pipefail
 
-LOGFILE=tmp/progress.txt
+VAULT_SERVICE_PUBLIC_URL=http://127.0.0.1:8200
+PCGL_DEBUG_MODE=1
 
 # make sure we have all the env vars:
-source env.sh
+source secrets.sh
 
-# this is the name of the ingest service (in case it changes)
-ingest="candig-ingest"
-
-# This script runs after the container is composed.
-
-# This script will set up a full vault environment on your local CanDIGv2 cluster
-
-# Automates instructions written at
-# https://github.com/CanDIG/CanDIGv2/blob/stable/docs/configure-vault.md
-
-# Related resources:
-# https://www.bogotobogo.com/DevOps/Docker/Docker-Vault-Consul.php
-# https://learn.hashicorp.com/tutorials/vault/identity
-# https://stackoverflow.com/questions/35703317/docker-exec-write-text-to-file-in-container
-# https://www.vaultproject.io/api-docs/secret/identity/entity#batch-delete-entities
-
-vault=$(docker ps -a --format "{{.Names}}" | grep vault_1 | awk '{print $1}')
-vault_runner=$(docker ps -a --format "{{.Names}}" | grep vault-runner_1 | awk '{print $1}')
-
-docker cp lib/vault/tmp/vault-config.json $vault:/vault/config/
-
-
-# check to see if we need to restore a backup before initializing a fresh Vault:
-if [[ -f "lib/vault/restore.tar.gz" ]]; then
-  echo ">> restoring vault from backup"
-  docker stop $vault
-  pwd=$(pwd)
-  cd lib/vault/tmp
-  tar -xzf $pwd/lib/vault/restore.tar.gz
-  cd $pwd
-  cp lib/vault/tmp/backup/keys.txt tmp/vault/
-  cp lib/vault/tmp/backup/service_stores.txt tmp/vault/
-  docker cp lib/vault/tmp/backup/keys.txt $vault_runner:/vault/config/
-  docker cp lib/vault/tmp/backup/backup.tar.gz $vault_runner:/vault/
-  docker exec $vault_runner bash -c "cd /vault; tar -xzf backup.tar.gz"
-  rm -R lib/vault/tmp/backup
-  mv lib/vault/restore.tar.gz lib/vault/restored.tar.gz
-fi
+vault=$(docker ps -a --format "{{.Names}}" | grep pcgl-authz_vault_1 | awk '{print $1}')
+flask=$(docker ps -a --format "{{.Names}}" | grep pcgl-authz_flask_1 | awk '{print $1}')
+docker cp app/vault-config.json $vault:/vault/config/
 
 # if vault isn't started, start it:
 docker restart $vault
@@ -57,7 +23,9 @@ do
   sleep 1
   docker ps --format "{{.Names}}" | grep vault_1
 done
-sleep 10
+sleep 5
+
+mkdir -p tmp/vault
 
 # gather keys and login token
 stuff=$(docker exec $vault vault operator init) # | head -7 | rev | cut -d " " -f1 | rev)
@@ -110,9 +78,9 @@ docker exec $vault sh -c "vault login ${key_root}"
 
 # configuration
 # audit file
-echo
-echo ">> enabling audit file"
-docker exec $vault sh -c "vault audit enable file file_path=/vault/vault-audit.log"
+# echo
+# echo ">> enabling audit file"
+# docker exec $vault sh -c "vault audit enable file file_path=/vault/vault-audit.log"
 
 # enable approle
 echo
@@ -124,40 +92,20 @@ docker exec $vault sh -c "echo 'path \"auth/approle/role/*\" {capabilities = [\"
 
 echo
 echo ">> setting up approle role"
-cidr_block=$(docker network inspect --format "{{json .IPAM.Config}}" candigv2_default | jq '.[0].Gateway')
+cidr_block=$(docker network inspect --format "{{json .IPAM.Config}}" pcgl-authz_default | jq '.[0].Gateway')
 cidr_block=$(echo ${cidr_block} | tr -d '"')
 cidr_block="${cidr_block}/27"
-if [ $CANDIG_DEBUG_MODE -eq 1 ]; then
-  echo "{}" > lib/vault/tmp/temp.json
+if [ $PCGL_DEBUG_MODE -eq 1 ]; then
+  echo "{}" > tmp/temp.json
 else
-  echo "{\"bound_cidrs\": [\"${cidr_block}\"]}" > lib/vault/tmp/temp.json
+  echo "{\"bound_cidrs\": [\"${cidr_block}\"]}" > tmp/temp.json
 fi
-curl --request POST --header "X-Vault-Token: ${key_root}" --data @lib/vault/tmp/temp.json $VAULT_SERVICE_PUBLIC_URL/v1/auth/token/roles/approle
-rm lib/vault/tmp/temp.json
+curl --request POST --header "X-Vault-Token: ${key_root}" --data @tmp/temp.json $VAULT_SERVICE_PUBLIC_URL/v1/auth/token/roles/approle
+rm tmp/temp.json
 
 echo
 echo ">> setting up approle token"
-echo "{\"policies\": [\"approle\"]}" > lib/vault/tmp/temp.json
-curl --request POST --header "X-Vault-Token: ${key_root}" --data @lib/vault/tmp/temp.json $VAULT_SERVICE_PUBLIC_URL/v1/auth/token/create/approle | jq '.auth.client_token' -r > tmp/vault/approle-token
-docker cp tmp/vault/approle-token $vault_runner:/vault/config/approle-token
-rm lib/vault/tmp/temp.json
-
-# Containers need to access the client secret and id:
-docker exec $vault vault secrets enable -path=keycloak -description="keycloak kv store" kv
-
-curl --request POST --header "X-Vault-Token: ${key_root}" --data "{\"value\": \"$CANDIG_CLIENT_SECRET\"}" $VAULT_SERVICE_PUBLIC_URL/v1/keycloak/client-secret
-
-curl --request POST --header "X-Vault-Token: ${key_root}" --data "{\"value\": \"$CANDIG_CLIENT_ID\"}" $VAULT_SERVICE_PUBLIC_URL/v1/keycloak/client-id
-
-## SPECIAL STORES ACCESS
-# Ingest needs access to the opa store's programs path:
-docker exec $vault sh -c "echo 'path \"opa/programs\" {capabilities = [\"update\", \"read\"]}' >> ${ingest}-policy.hcl; echo 'path \"opa/programs/*\" {capabilities = [\"create\", \"update\", \"read\", \"delete\"]}' >> ${ingest}-policy.hcl; echo 'path \"opa/site_roles\" {capabilities = [\"create\", \"update\", \"read\", \"delete\"]}' >> ${ingest}-policy.hcl; echo 'path \"opa/users/*\" {capabilities = [\"create\", \"update\", \"read\", \"delete\"]}' >> ${ingest}-policy.hcl; echo 'path \"opa/pending_users\" {capabilities = [ \"update\", \"read\"]}' >> ${ingest}-policy.hcl; vault policy write ${ingest} ${ingest}-policy.hcl"
-
-docker restart $vault_runner
-
-if [ -f tmp/vault/service_stores.txt ]; then
-    echo ">> creating service stores"
-    while read service; do
-        bash create_service_store.sh $service
-    done <tmp/vault/service_stores.txt
-fi
+echo "{\"policies\": [\"approle\"]}" > tmp/temp.json
+curl --request POST --header "X-Vault-Token: ${key_root}" --data @tmp/temp.json $VAULT_SERVICE_PUBLIC_URL/v1/auth/token/create/approle | jq '.auth.client_token' -r > tmp/vault/approle-token
+docker cp tmp/vault/approle-token $vault:/vault/config/approle-token
+rm tmp/temp.json
