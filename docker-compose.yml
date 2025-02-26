@@ -63,5 +63,5 @@ services:
       retries: 3
     entrypoint:
       - "bash"
-      - "/entrypoint.sh"
+      - "/app/entrypoint.sh"
 
