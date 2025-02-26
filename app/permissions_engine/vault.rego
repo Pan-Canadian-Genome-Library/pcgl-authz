@@ -1,34 +1,35 @@
 package vault
+
 #
 # Obtain secrets from Opa's service secret store in Vault
 #
+import rego.v1
 
-import future.keywords.in
-import data.store_token.token as vault_token
 import data.idp.user_key
-
-# keys are the IDP keys for verifying JWTs, used by idp.rego and authz.rego
-keys = http.send({"method": "get", "url": "https://cilogon.org/oauth2/certs"}).body.data.keys
+import data.store_token.token as vault_token
 
 # paths are the paths authorized for methods, used by permissions.rego
-paths = http.send({"method": "get", "url": "VAULT_URL/v1/opa/paths", "headers": {"X-Vault-Token": vault_token}}).body.data.paths
+paths := http.send({"method": "get", "url": "VAULT_URL/v1/opa/paths", "headers": {"X-Vault-Token": vault_token}}).body.data.paths
 
-# service_token gets the token saved for a service, used by service.rego
-service_token = http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", input.service, "token", input.token]), "headers": {"X-Vault-Token": vault_token}}).body.data.token
+# groups are site-wide authorizations, used by permissions.rego and authz.rego
+groups := http.send({"method": "get", "url": "VAULT_URL/v1/opa/groups", "headers": {"X-Vault-Token": vault_token}}).body.data.groups
 
-# site_roles are site-wide authorizations, used by permissions.rego and authz.rego
-site_roles = http.send({"method": "get", "url": "VAULT_URL/v1/opa/site_roles", "headers": {"X-Vault-Token": vault_token}}).body.data.site_roles
+all_studies := http.send({"method": "get", "url": "VAULT_URL/v1/opa/studies", "headers": {"X-Vault-Token": vault_token}}).body.data.studies
 
-all_programs = http.send({"method": "get", "url": "VAULT_URL/v1/opa/programs", "headers": {"X-Vault-Token": vault_token}}).body.data.programs
-program_auths[p] := program {
-    some p in all_programs
-    program := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/opa/programs", p]) , "headers": {"X-Vault-Token": vault_token}}).body.data[p]
+study_auths[p] := study if {
+	some p in all_studies
+	study := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/opa/studies", p]), "headers": {"X-Vault-Token": vault_token}}).body.data[p]
 }
 
-# check to see if the user is authorized for any other programs via DACs
-user_auth = http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/opa/users", urlquery.encode(user_key)]), "headers": {"X-Vault-Token": vault_token}, "raise_error": false})
+user_index := http.send({"method": "get", "url": "VAULT_URL/v1/opa/users/index", "headers": {"X-Vault-Token": vault_token}, "raise_error": false}).body.data
 
-default user_programs = []
-user_programs = user_auth.body.data.programs {
-    user_auth.status_code = 200
+user_id := user_index[user_key]
+
+# check to see if the user is authorized for any other studies via DACs
+user_auth := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/opa/users", user_id]), "headers": {"X-Vault-Token": vault_token}, "raise_error": false})
+
+default user_studies := {}
+
+user_studies := user_auth.body.data.study_authorizations if {
+	user_auth.status_code = 200
 }

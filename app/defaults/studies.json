@@ -1,0 +1,14 @@
+{
+    "SYNTHETIC-1": {
+        "study_id": "SYNTHETIC-1",
+        "study_curators": ["PCGL100004"],
+        "team_members": ["USER1"],
+        "date_created": "2020-01-01"
+    },
+    "SYNTHETIC-2": {
+        "study_id": "SYNTHETIC-2",
+        "study_curators": ["USER2"],
+        "team_members": ["PCGL100007"],
+        "date_created": "2020-03-01"
+    }
+}

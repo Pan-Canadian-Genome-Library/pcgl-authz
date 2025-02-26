@@ -56,6 +56,7 @@ services:
       PCGL_CORE_API_USER: ${PCGL_CORE_API_USER}
       PCGL_CORE_API_KEY: ${PCGL_CORE_API_KEY}
       PCGL_COID: ${PCGL_COID}
+      PCGL_API_URL: ${PCGL_API_URL}
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://flask:1236/service-info"]
       interval: 30s
