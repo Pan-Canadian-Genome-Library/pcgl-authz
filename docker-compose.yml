@@ -2,32 +2,12 @@ volumes:
   auth-data:
     external: true
 services:
-  runner:
-    build:
-      context: .
-      args:
-        venv_python: "3.12"
-        alpine_version: "3.18"
-    volumes:
-      - auth-data:/app
-    environment:
-      OPA_URL: http://opa:8181
-      VAULT_URL: http://vault:8200
-      SERVICE_NAME: opa
-      CANDIG_USER_KEY: email
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://opa:8181/v1/data/service/service-info"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-    entrypoint:
-      - "bash"
-      - "/app/entrypoint.sh"
-
   opa:
     image: openpolicyagent/opa:1.1.0-static
     ports:
       - "8181:8181"
+    labels:
+      - "pcgl=opa"
     volumes:
       - auth-data:/app
     command:
@@ -54,3 +34,34 @@ services:
     cap_add:
       - IPC_LOCK
     command: vault server -config=/vault/config/vault-config.json
+
+  flask:
+    build:
+      context: .
+      args:
+        venv_python: "3.12"
+    labels:
+      - "pcgl=flask"
+    ports:
+      - 1235:1235
+    volumes:
+      - auth-data:/app
+    environment:
+      OPA_URL: http://opa:8181
+      VAULT_URL: http://vault:8200
+      SERVICE_NAME: opa
+      PCGL_USER_KEY: email
+      PCGL_ISSUER: ${PCGL_ISSUER}
+      PCGL_CLIENT_ID: ${PCGL_CLIENT_ID}
+      PCGL_CORE_API_USER: ${PCGL_CORE_API_USER}
+      PCGL_CORE_API_KEY: ${PCGL_CORE_API_KEY}
+      PCGL_COID: ${PCGL_COID}
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://flask:1236/service-info"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    entrypoint:
+      - "bash"
+      - "/entrypoint.sh"
+
