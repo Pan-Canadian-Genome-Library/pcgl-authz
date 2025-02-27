@@ -37,8 +37,8 @@ else
     curl --request POST --data @payload.json http://vault:8200/v1/sys/unseal
 fi
 
-# make sure that our idp is still set correctly (maybe keycloak was reinitialized)
-python3 /app/get_vault_store_token.py
+# make sure that our vault stores have the latest values
+python3 /app/refresh_stores.py
 
 
 # start server
@@ -50,7 +50,7 @@ while [ 0 -eq 0 ]
 do
   echo "storing vault token"
   bash /app/renew_token.sh
-  python3 /app/get_vault_store_token.py
+  python3 /app/refresh_stores.py
   if [[ $? -eq 0 ]]; then
       echo "vault token stored"
       sleep 300

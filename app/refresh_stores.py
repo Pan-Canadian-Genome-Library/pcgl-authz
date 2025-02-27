@@ -1,6 +1,6 @@
 import json
 import os
-from src.auth import get_vault_token_for_service
+from src.auth import get_vault_token_for_service, get_comanage_groups
 import sys
 import requests
 
@@ -17,6 +17,7 @@ try:
         payload = f"{{\"token\": \"{opa_token}\"}}"
         response = requests.put(url=f"{os.getenv('OPA_URL')}/v1/data/store_token", headers=headers, data=payload)
         print(response.text)
+    get_comanage_groups()
 except Exception as e:
     print(str(e))
     sys.exit(1)
