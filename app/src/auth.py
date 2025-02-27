@@ -456,6 +456,7 @@ def get_comanage_user(request, token=None, oidcsub=None):
         return response.text, response.status_code
     return {"error": "could not find oidcsub"}, 500
 
+
 def get_comanage_groups():
     result = []
     response = requests.get(f"{PCGL_API_URL}/registry/co_groups.json", params={"coid": PCGL_COID}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
@@ -483,5 +484,6 @@ def get_comanage_groups():
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]
         return data, 200
+        set_service_store_secret("opa", key="groups", value=json.dumps(data))
 
     return response.text, response.status_code

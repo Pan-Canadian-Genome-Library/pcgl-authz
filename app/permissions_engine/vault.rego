@@ -12,7 +12,7 @@ import data.store_token.token as vault_token
 paths := http.send({"method": "get", "url": "VAULT_URL/v1/opa/paths", "headers": {"X-Vault-Token": vault_token}}).body.data.paths
 
 # groups are site-wide authorizations, used by permissions.rego and authz.rego
-groups := http.send({"method": "get", "url": "VAULT_URL/v1/opa/groups", "headers": {"X-Vault-Token": vault_token}}).body.data.groups
+groups := http.send({"method": "get", "url": "VAULT_URL/v1/opa/groups", "headers": {"X-Vault-Token": vault_token}}).body.data
 
 all_studies := http.send({"method": "get", "url": "VAULT_URL/v1/opa/studies", "headers": {"X-Vault-Token": vault_token}}).body.data.studies
 

@@ -33,12 +33,14 @@ try:
     # initialize groups from comanage
     members_to_initialize = []
     response, status_code = get_comanage_groups()
+
     if status_code == 200:
         group_ids = response["ids"]
         for group_id in group_ids:
             for i in response[group_id]:
                 if i not in members_to_initialize:
                     members_to_initialize.append(i)
+        response, status_code = set_service_store_secret("opa", key="groups", value=json.dumps(response))
     else:
         raise Exception(f"failed to save groups: {response} {status_code}")
 
