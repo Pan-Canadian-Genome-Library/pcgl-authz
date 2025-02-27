@@ -30,6 +30,8 @@ def get_auth_token(request, token=None):
     Extracts token from request's Authorization header
     """
     if request is not None:
+        if "Authorization" not in request.headers:
+            raise AuthzError("No Authorization header present")
         token = request.headers['Authorization']
         token = token.split(",")[0].strip()
         token = token.split()[1]
@@ -43,40 +45,51 @@ def get_auth_token(request, token=None):
 # General authorization methods
 ######
 
-def get_authorized_studies(request):
-    """
-    Get allowed study result from OPA
-    Returns array of strings
-    """
-
-    token = get_auth_token(request)
-
-    body = {
-        "input": {
-            "token": token,
-            "body": {
-                "method": request.method
-            }
-        }
-    }
-    if hasattr(request, 'path'):
-        body["input"]["body"]["path"] = request.path
-    elif hasattr(request, 'url'):
-        body["input"]["body"]["path"] = request.url
-
+def get_opa_permissions(bearer_token=None, user_token=None, method=None, path=None, study=None):
+    token = get_auth_token(None, token=bearer_token)
+    if user_token is None:
+        user_token = token
     headers = {
         "Authorization": f"Bearer {token}"
     }
+    input = {
+        "token": user_token,
+        "body": {
+            "method": method,
+            "path": path
+        }
+    }
+    if study is not None:
+        input["body"]["study"] = study
     response = requests.post(
         OPA_URL + "/v1/data/permissions",
         headers=headers,
-        json=body
-    )
+        json={"input": input}
+        )
     if response.status_code == 200:
-        if "studies" in response.json()["result"]:
-            return response.json()["result"]["studies"]
+        return response.json()["result"], 200
+    return response.text, response.status_code
 
-    return []
+
+def get_authorized_studies(request, token=None):
+    """
+    Get studies authorized for the user.
+    Returns array of strings
+    """
+
+    token = get_auth_token(request, token=token)
+
+    if hasattr(request, 'path'):
+        path = request.path
+    elif hasattr(request, 'url'):
+        path = request.url
+
+    response, status_code = get_opa_permissions(bearer_token=token, method=request.method, path=path)
+    if status_code == 200:
+        if "studies" in response:
+            return response["studies"], 200
+
+    return [], status_code
 
 
 def is_site_admin(request, token=None):
@@ -84,8 +97,8 @@ def is_site_admin(request, token=None):
     Is the user associated with the token a site admin?
     Returns boolean.
     """
-    if request is not None and "Authorization" in request.headers:
-        token = get_auth_token(request)
+    token = get_auth_token(request, token=token)
+
     headers = {
         "Authorization": f"Bearer {token}"
     }
@@ -104,35 +117,11 @@ def is_site_admin(request, token=None):
     return False
 
 
-def get_opa_permissions(bearer_token=None, user_token=None, method=None, path=None, study=None):
-    token = get_auth_token(None, token=bearer_token)
-    if user_token is None:
-        user_token = token
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-    response = requests.post(
-        OPA_URL + "/v1/data/permissions",
-        headers=headers,
-        json={
-            "input": {
-                    "token": user_token,
-                    "body": {
-                        "method": method,
-                        "path": path,
-                        "study": study
-                    }
-                }
-            }
-        )
-    if response.status_code == 200:
-        return response.json()["result"], 200
-    return response.text, response.status_code
-
-def is_action_allowed_for_study(token, method=None, path=None, study=None):
+def is_action_allowed_for_study(request, token=None, method=None, path=None, study=None):
     """
     Is the user allowed to perform this action on this study?
     """
+    token = get_auth_token(request, token=token)
 
     response, status_code = get_opa_permissions(bearer_token=token, method=method, path=path, study=study)
     if status_code == 200:
@@ -145,9 +134,7 @@ def get_oidcsub(request, token=None):
     """
     Returns the OIDC sub (as defined in the sub claim of userinfo).
     """
-    if token is None:
-        if "Authorization" in request.headers:
-            token = get_auth_token(request)
+    token = get_auth_token(request, token=token)
     headers = {
         "Authorization": f"Bearer {token}"
     }
@@ -213,14 +200,6 @@ def add_study(study_auth):
                 response2 = {'studies': [study_id]}
             response2, status_code = set_service_store_secret("opa", key="studies", value=json.dumps(response2))
             return response, status_code
-
-    # add the users to the preapproved user list
-    for user_id in study_auth["team_members"]:
-        # if the user isn't already approved, make sure they will be:
-        response, status_code = add_preapproved_user(user_id)
-    for user_id in study_auth["study_curators"]:
-        # if the user isn't already approved, make sure they will be:
-        response, status_code = add_preapproved_user(user_id)
 
     return {"message": f"{study_id} not added"}, status_code
 
