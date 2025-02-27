@@ -208,7 +208,7 @@ paths:
   /allowed:
     post:
       summary: Is the authorized user allowed to perform the requested action?
-      description: Authorize a study for a user (or update a study auth for a user)
+      description: Returns whether a user is allowed to perform the requested action on the specified datasets
       operationId: authz_operations.is_allowed
       requestBody:
         $ref: '#/components/requestBodies/ActionAuthorizationRequest'
@@ -218,7 +218,9 @@ paths:
           content:
             application/json:
               schema:
-                type: boolean
+                type: array
+                items:
+                  type: boolean
 
 components:
   requestBodies:
