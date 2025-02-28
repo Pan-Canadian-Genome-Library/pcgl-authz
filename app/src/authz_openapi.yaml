@@ -138,6 +138,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudyAuthorization'
+  /user/lookup:
+    parameters:
+      - in: query
+        name: email
+        schema:
+          type: string
+        required: false
+    get:
+      summary: Look up a PCGL user
+      description: Look up a PCGL user
+      operationId: authz_operations.lookup_user
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
   /user/{user_id}/study:
     parameters:
       - in: path

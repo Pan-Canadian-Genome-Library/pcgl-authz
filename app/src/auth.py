@@ -153,6 +153,47 @@ def get_oidcsub(request, token=None):
     return None
 
 
+#####
+# Users
+#####
+
+def write_user(user_dict):
+    if "id" in user_dict:
+        comanage_id = user_dict.pop("id")
+        response, status_code = set_service_store_secret("opa", key=f"users/{comanage_id}", value=json.dumps(user_dict))
+        if status_code != 200:
+            response = {"error": f"User {comanage_id} was not found"}
+    return response, status_code
+
+
+def get_user_by_pcglid(pcglid):
+    user_index, status_code = get_service_store_secret("opa", key=f"users/index")
+    if status_code == 200:
+        if pcglid in user_index:
+            user, status_code = get_service_store_secret("opa", key=f"users/{user_index[pcglid]}")
+            user["id"] = user_index[pcglid]
+            return user, status_code
+    return {"error": f"no user found for pcglid {pcglid}"}, 404
+
+
+def get_user_by_comanage_id(comanage_id):
+    return get_service_store_secret("opa", key=f"users/{comanage_id}")
+
+
+def lookup_user_by_email(email):
+    user_index, status_code = get_service_store_secret("opa", key=f"users/index")
+    if status_code == 200:
+        if email in user_index:
+            result = []
+            for comanage_id in user_index[email]:
+                user, status_code = get_service_store_secret("opa", key=f"users/{comanage_id}")
+                if status_code == 200:
+                    user["id"] = comanage_id
+                    result.append(user)
+            return result, 200
+    return {"error": f"no user found for email {email}"}, 404
+
+
 ######
 # Studies
 ######
