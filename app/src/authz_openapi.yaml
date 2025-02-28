@@ -264,6 +264,8 @@ components:
         'application/json':
           schema:
             type: object
+            required:
+              - action
             properties:
               action:
                 $ref: "#/components/schemas/Action"
