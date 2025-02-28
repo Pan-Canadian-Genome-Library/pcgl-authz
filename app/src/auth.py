@@ -271,6 +271,90 @@ def remove_study(study_id):
 
 
 ######
+# Services
+######
+
+def get_service(service_id):
+    """
+    Returns a Service for the service_id
+    """
+    response, status_code = get_service_store_secret("opa", key=f"service/{service_id}")
+    if status_code < 300:
+        return response, status_code
+    return {"message": f"{service_id} not found"}, status_code
+
+
+def list_services():
+    result = []
+    response, status_code = get_service_store_secret("opa", key="services")
+    if status_code == 200:
+        services = response["services"]
+        for service_id in services:
+            response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
+            if status_code == 200:
+                result.append(response)
+    return result, 200
+
+
+def add_service(service_dict):
+    service_id = service_dict["service_id"]
+
+    # list the service in the services index:
+    services, status_code = get_service_store_secret("opa", key="services")
+    if status_code == 404:
+        services = []
+    services.append(service_id)
+    set_service_store_secret("opa", key="services", value=json.dumps({"services": services}))
+
+    # add the actions to the paths
+    paths_response, status_code = get_service_store_secret("opa", key="paths")
+    if status_code == 200:
+        paths = paths_response["paths"]
+        # add the actions:
+        for action in service_dict["readable"]:
+            if action["endpoint"] in paths["read"][action["method"].lower()]:
+                return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
+            paths["read"][action["method"].lower()].append(action["endpoint"])
+        for action in service_dict["editable"]:
+            if action["endpoint"] in paths["edit"][action["method"].lower()]:
+                return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
+            paths["edit"][action["method"].lower()].append(action["endpoint"])
+        response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps(paths_response))
+
+    # write the service into its own store:
+    response, status_code = set_service_store_secret("opa", key=f"services/{service_id}", value=json.dumps(service_dict))
+    return response, status_code
+
+
+def remove_service(service_id):
+    # remove the service from the services index:
+    response, status_code = get_service_store_secret("opa", key="services")
+    if status_code == 200:
+        services = response["services"]
+        if service_id in services:
+            services.remove(service_id)
+        set_service_store_secret("opa", key="services", value=json.dumps(response))
+
+    # remove the actions from the paths
+    service_dict, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
+    paths_response, status_code = get_service_store_secret("opa", key="paths")
+    if status_code == 200:
+        paths = paths_response["paths"]
+        # remove the actions:
+        for action in service_dict["readable"]:
+            if action["endpoint"] in paths["read"][action["method"].lower()]:
+                paths["read"][action["method"].lower()].remove(action["endpoint"])
+        for action in service_dict["editable"]:
+            if action["endpoint"] in paths["edit"][action["method"].lower()]:
+                paths["edit"][action["method"].lower()].remove(action["endpoint"])
+        response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps(paths_response))
+
+    # remove the service's own store:
+    response, status_code = delete_service_store_secret("opa", key=f"services/{service_id}")
+    return response, status_code
+
+
+######
 # Vault service stores. Call these from within containers.
 ######
 

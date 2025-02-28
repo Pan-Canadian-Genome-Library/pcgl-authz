@@ -64,27 +64,29 @@ def list_group(group_id):
 
 def list_services():
     if auth.is_site_admin(connexion.request):
-        return [], 200
+        return auth.list_services()
     return {"error": "User is not authorized to list services"}, 403
 
 
-def add_service():
+async def add_service():
+    service = await connexion.request.json()
+
     if auth.is_site_admin(connexion.request):
-        return [], 200
+        return auth.add_service(service)
     return {"error": "User is not authorized to add services"}, 403
 
 
 @app.route('/service/<path:service_id>')
-def get_service():
+def get_service(service_id):
     if auth.is_site_admin(connexion.request):
-        return [], 200
+        return auth.get_service(service_id)
     return {"error": "User is not authorized to get services"}, 403
 
 
 @app.route('/service/<path:service_id>')
-def remove_service():
+def remove_service(service_id):
     if auth.is_site_admin(connexion.request):
-        return [], 200
+        return auth.remove_service(service_id)
     return {"error": "User is not authorized to remove services"}, 403
 
 
