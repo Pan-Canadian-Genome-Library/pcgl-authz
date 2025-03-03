@@ -99,6 +99,7 @@ else := false
 
 # information from the jwt
 user_id := data.vault.user_id
+user_pcglid := data.vault.user_pcglid
 
 user_key := data.idp.user_key
 

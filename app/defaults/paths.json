@@ -2,6 +2,7 @@
     "paths": {
         "read": {
             "get": [
+                "authz/study/?.*"
             ],
             "post": [
             ]

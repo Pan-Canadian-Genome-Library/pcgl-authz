@@ -16,6 +16,7 @@ package calculate
 import data.idp.user_key as user_key
 import data.vault.user_id as user_id
 
+user_pcglid := data.vault.user_pcglid
 import rego.v1
 
 #
@@ -50,7 +51,7 @@ user_readable_studies[p.study_id] := output if {
 # compile list of studies that list the user as a team member
 team_readable_studies[p] := output if {
 	some p in all_studies
-	user_key in study_auths[p].team_members
+	user_pcglid in study_auths[p].team_members
 	output := study_auths[p].team_members
 }
 
@@ -60,7 +61,7 @@ readable_studies := object.keys(object.union(team_readable_studies, user_readabl
 # user can edit studies that list the user as a study curator
 editable_studies[p] if {
 	some p in all_studies
-	user_key in study_auths[p].study_curators
+	user_pcglid in study_auths[p].study_curators
 }
 
 import data.vault.paths as paths
