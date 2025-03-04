@@ -1,6 +1,5 @@
 volumes:
   auth-data:
-    external: true
 services:
   flask:
     build:

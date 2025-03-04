@@ -2,7 +2,6 @@
 
 
 source secrets.sh
-docker volume create auth-data --label pcgl=volume
 bash vault_preflight.sh
 docker compose build $@
 docker compose --compatibility up --detach
