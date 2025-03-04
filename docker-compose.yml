@@ -1,5 +1,7 @@
 volumes:
   auth-data:
+  vault-data:
+
 services:
   flask:
     build:
@@ -12,6 +14,7 @@ services:
       - 1235:1235
     volumes:
       - auth-data:/app
+      - vault-data:/vault
     environment:
       OPA_URL: http://opa:8181
       VAULT_URL: http://vault:8200
@@ -52,7 +55,7 @@ services:
     ports:
       - 8200:8200
     volumes:
-      - auth-data:/vault
+      - vault-data:/vault
     environment:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_DISABLE_MLOCK=true

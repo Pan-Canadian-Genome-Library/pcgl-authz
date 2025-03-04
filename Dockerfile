@@ -21,15 +21,14 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY app/ /app/
 
+WORKDIR /vault/
+RUN mkdir -p /vault/config
+RUN mkdir -p /vault/data
 RUN chown -R pcgl:pcgl /app
 
 USER pcgl
 
 WORKDIR /app/
-
-RUN mkdir -p /app/config
-RUN mkdir -p /app/data
-RUN chmod 755 /app/data
 
 RUN curl -L -o opa https://openpolicyagent.org/downloads/v1.1.0/opa_linux_amd64_static
 
