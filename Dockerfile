@@ -24,6 +24,7 @@ COPY app/ /app/
 WORKDIR /vault/
 RUN mkdir -p /vault/config
 RUN mkdir -p /vault/data
+RUN chmod 777 /vault/data
 RUN chown -R pcgl:pcgl /app
 
 USER pcgl
