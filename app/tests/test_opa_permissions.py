@@ -191,7 +191,7 @@ def setup_vault(user, groups, users, studies):
     return vault
 
 
-def evaluate_opa(user, input, key, expected_result, groups, users, studies, local_token=True):
+def evaluate_opa(user, input, key, expected_result, groups, users, studies):
     args = [
         "./opa", "eval",
         "--data", "permissions_engine/authz.rego",
@@ -207,8 +207,7 @@ def evaluate_opa(user, input, key, expected_result, groups, users, studies, loca
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as idp_fp:
             idp = {"idp": {
                     "user_key": users[user]["oidcsub"],
-                    "valid_token": True,
-                    "is_local_token": local_token
+                    "valid_token": True
                 }
             }
             json.dump(idp, idp_fp)
@@ -239,20 +238,18 @@ def get_site_admin_tests():
     return [
         ( # user1 is not a site admin
             "user1",
-            True,
             False
         ),
         ( # site_admin is a site admin
             "site_admin",
-            True,
             True
         )
     ]
 
 
-@pytest.mark.parametrize('user, local_token, expected_result', get_site_admin_tests())
-def test_site_admin(user, expected_result, groups, users, studies, local_token):
-    evaluate_opa(user, {}, "site_admin", expected_result, groups, users, studies, local_token)
+@pytest.mark.parametrize('user, expected_result', get_site_admin_tests())
+def test_site_admin(user, expected_result, groups, users, studies):
+    evaluate_opa(user, {}, "site_admin", expected_result, groups, users, studies)
 
 
 def get_user_studies():
