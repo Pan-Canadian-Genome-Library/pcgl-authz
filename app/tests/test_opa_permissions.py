@@ -17,166 +17,160 @@ REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
 DEFAULTS_DIR = f"{REPO_DIR}/defaults"
 sys.path.insert(0, os.path.abspath(f"{REPO_DIR}"))
 
-@pytest.fixture
-def groups():
-    return {
-      "admin": [
-        "site_admin"
-      ],
-      "curator": [
-        "user2"
-      ],
-      "member": [
-        "user1",
-        "user2",
-        "other1"
-      ]
-    }
+GROUPS = {
+  "admin": [
+    "site_admin"
+  ],
+  "curator": [
+    "user2"
+  ],
+  "member": [
+    "user1",
+    "user2",
+    "other1"
+  ]
+}
 
 
-@pytest.fixture
-def studies():
-    return {
-      "SYNTHETIC-1": {
-        "date_created": "2020-01-01",
-        "study_curators": [
-          "PCGLuser1"
-        ],
-        "study_id": "SYNTHETIC-1",
-        "team_members": [
-          "PCGLuser1"
-        ]
-      },
-      "SYNTHETIC-2": {
-        "date_created": "2020-03-01",
-        "study_curators": [
-          "PCGLuser2"
-        ],
-        "study_id": "SYNTHETIC-2",
-        "team_members": [
-          "PCGLuser2"
-        ]
-      },
-      "SYNTHETIC-3": {
-        "date_created": "2020-03-01",
-        "study_curators": [
-          "PCGLuser1",
-          "PCGLuser3"
-        ],
-        "study_id": "SYNTHETIC-3",
-        "team_members": [
-          "PCGLuser1",
-          "PCGLuser2",
-          "PCGLuser3"
-        ]
-      },
-      "SYNTHETIC-4": {
-        "date_created": "2020-03-01",
-        "study_curators": [
-          "PCGLuser4"
-        ],
-        "study_id": "SYNTHETIC-4",
-        "team_members": [
-          "PCGLuser1",
-          "PCGLuser4"
-        ]
-      }
-    }
+STUDIES = {
+  "SYNTHETIC-1": {
+    "date_created": "2020-01-01",
+    "study_curators": [
+      "PCGLuser1"
+    ],
+    "study_id": "SYNTHETIC-1",
+    "team_members": [
+      "PCGLuser1"
+    ]
+  },
+  "SYNTHETIC-2": {
+    "date_created": "2020-03-01",
+    "study_curators": [
+      "PCGLuser2"
+    ],
+    "study_id": "SYNTHETIC-2",
+    "team_members": [
+      "PCGLuser2"
+    ]
+  },
+  "SYNTHETIC-3": {
+    "date_created": "2020-03-01",
+    "study_curators": [
+      "PCGLuser1",
+      "PCGLuser3"
+    ],
+    "study_id": "SYNTHETIC-3",
+    "team_members": [
+      "PCGLuser1",
+      "PCGLuser2",
+      "PCGLuser3"
+    ]
+  },
+  "SYNTHETIC-4": {
+    "date_created": "2020-03-01",
+    "study_curators": [
+      "PCGLuser4"
+    ],
+    "study_id": "SYNTHETIC-4",
+    "team_members": [
+      "PCGLuser1",
+      "PCGLuser4"
+    ]
+  }
+}
 
 
-@pytest.fixture
-def users():
-    return {
-        "user1": {
-            # user1 is curator for SYNTHETIC-1, SYNTHETIC-3
-            # user1 is member of SYNTHETIC-1, SYNTHETIC-3, SYNTHETIC-4
-            "emails": [
-                "user1@test.ca"
-            ],
-            "oidcsub": "http://cilogon.org/serverF/users/user1",
-            "pcglid": "PCGLuser1",
-            "study_authorizations": {
-                "SYNTHETIC-1": {
-                    "study_id": "SYNTHETIC-1",
-                    "start_date": THE_PAST,
-                    "end_date": THE_FUTURE
-                }
-            }
-        },
-        "user2": {
-            # user2 is curator for SYNTHETIC-2
-            # user2 is member of SYNTHETIC-2, SYNTHETIC-3
-            "emails": [
-                "user2@test.ca"
-            ],
-            "oidcsub": "http://cilogon.org/serverF/users/user2",
-            "pcglid": "PCGLuser2",
-            "study_authorizations": {
-                "SYNTHETIC-1": {
-                    "study_id": "SYNTHETIC-1",
-                    "start_date": THE_PAST,
-                    "end_date": THE_FUTURE
-                },
-                "SYNTHETIC-4": {
-                    "study_id": "SYNTHETIC-4",
-                    "start_date": THE_PAST,
-                    "end_date": THE_FUTURE
-                }
-            }
-        },
-        "user3": {
-            # user3 is curator for SYNTHETIC-3
-            # user3 is member of SYNTHETIC-3
-            "emails": [
-                "user3@test.ca"
-            ],
-            "oidcsub": "http://cilogon.org/serverF/users/user3",
-            "pcglid": "PCGLuser3",
-            "study_authorizations": {
-                "SYNTHETIC-1":{ # this study is already OVER
-                    "study_id": "SYNTHETIC-1",
-                    "start_date": THE_PAST,
-                    "end_date": THE_PAST
-                },
-                "SYNTHETIC-4": {
-                    "study_id": "SYNTHETIC-4",
-                    "start_date": THE_PAST,
-                    "end_date": THE_FUTURE
-                }
-            }
-        },
-        "dac_user": {
-            "emails": [
-                "dac_user@test.ca"
-            ],
-            "oidcsub": "http://cilogon.org/serverF/users/dac_user",
-            "pcglid": "PCGLdac_user",
-            "study_authorizations": {
-                "SYNTHETIC-3":{
-                    "study_id": "SYNTHETIC-3",
-                    "start_date": THE_PAST,
-                    "end_date": THE_FUTURE
-                }
-            }
-        },
-        "site_admin": {
-            "emails": [
-                "site_admin@test.ca"
-            ],
-            "oidcsub": "http://cilogon.org/serverF/users/site_admin",
-            "pcglid": "PCGLsite_admin",
-            "study_authorizations": {
+USERS = {
+    "user1": {
+        # user1 is curator for SYNTHETIC-1, SYNTHETIC-3
+        # user1 is member of SYNTHETIC-1, SYNTHETIC-3, SYNTHETIC-4
+        "emails": [
+            "user1@test.ca"
+        ],
+        "oidcsub": "http://cilogon.org/serverF/users/user1",
+        "pcglid": "PCGLuser1",
+        "study_authorizations": {
+            "SYNTHETIC-1": {
+                "study_id": "SYNTHETIC-1",
+                "start_date": THE_PAST,
+                "end_date": THE_FUTURE
             }
         }
+    },
+    "user2": {
+        # user2 is curator for SYNTHETIC-2
+        # user2 is member of SYNTHETIC-2, SYNTHETIC-3
+        "emails": [
+            "user2@test.ca"
+        ],
+        "oidcsub": "http://cilogon.org/serverF/users/user2",
+        "pcglid": "PCGLuser2",
+        "study_authorizations": {
+            "SYNTHETIC-1": {
+                "study_id": "SYNTHETIC-1",
+                "start_date": THE_PAST,
+                "end_date": THE_FUTURE
+            },
+            "SYNTHETIC-4": {
+                "study_id": "SYNTHETIC-4",
+                "start_date": THE_PAST,
+                "end_date": THE_FUTURE
+            }
+        }
+    },
+    "user3": {
+        # user3 is curator for SYNTHETIC-3
+        # user3 is member of SYNTHETIC-3
+        "emails": [
+            "user3@test.ca"
+        ],
+        "oidcsub": "http://cilogon.org/serverF/users/user3",
+        "pcglid": "PCGLuser3",
+        "study_authorizations": {
+            "SYNTHETIC-1":{ # this study is already OVER
+                "study_id": "SYNTHETIC-1",
+                "start_date": THE_PAST,
+                "end_date": THE_PAST
+            },
+            "SYNTHETIC-4": {
+                "study_id": "SYNTHETIC-4",
+                "start_date": THE_PAST,
+                "end_date": THE_FUTURE
+            }
+        }
+    },
+    "dac_user": {
+        "emails": [
+            "dac_user@test.ca"
+        ],
+        "oidcsub": "http://cilogon.org/serverF/users/dac_user",
+        "pcglid": "PCGLdac_user",
+        "study_authorizations": {
+            "SYNTHETIC-3":{
+                "study_id": "SYNTHETIC-3",
+                "start_date": THE_PAST,
+                "end_date": THE_FUTURE
+            }
+        }
+    },
+    "site_admin": {
+        "emails": [
+            "site_admin@test.ca"
+        ],
+        "oidcsub": "http://cilogon.org/serverF/users/site_admin",
+        "pcglid": "PCGLsite_admin",
+        "study_authorizations": {
+        }
     }
+}
 
 
-def setup_vault(user, groups, users, studies):
+def setup_vault(user):
     vault = {"vault": {}}
-    vault["vault"]["study_auths"] = studies
-    vault["vault"]["all_studies"] = list(studies.keys())
-    vault["vault"]["groups"] = groups
-    user_read_auth = users[user]
+    vault["vault"]["study_auths"] = STUDIES
+    vault["vault"]["all_studies"] = list(STUDIES.keys())
+    vault["vault"]["groups"] = GROUPS
+    user_read_auth = USERS[user]
     if "study_authorizations" in user_read_auth:
         vault["vault"]["user_studies"] = user_read_auth["study_authorizations"]
         vault["vault"]["user_auth"] = {"status_code": 200}
@@ -191,14 +185,14 @@ def setup_vault(user, groups, users, studies):
     return vault
 
 
-def evaluate_opa(user, input, key, expected_result, groups, users, studies):
+def evaluate_opa(user, input):
     args = [
         "./opa", "eval",
         "--data", "permissions_engine/authz.rego",
         "--data", "permissions_engine/calculate.rego",
         "--data", "permissions_engine/permissions.rego",
     ]
-    vault = setup_vault(user, groups, users, studies)
+    vault = setup_vault(user)
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as vault_fp:
         json.dump(vault, vault_fp)
@@ -206,7 +200,7 @@ def evaluate_opa(user, input, key, expected_result, groups, users, studies):
         vault_fp.close()
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as idp_fp:
             idp = {"idp": {
-                    "user_key": users[user]["oidcsub"],
+                    "user_key": USERS[user]["oidcsub"],
                     "valid_token": True
                 }
             }
@@ -220,18 +214,27 @@ def evaluate_opa(user, input, key, expected_result, groups, users, studies):
 
                 # finally, query arg:
                 args.append("data.permissions")
-                print(json.dumps(vault))
-                print(json.dumps(idp))
-                print(json.dumps({"input": input}))
                 p = subprocess.run(args, stdout=subprocess.PIPE)
                 r =  json.loads(p.stdout)
-                result =r['result'][0]['expressions'][0]['value']
-                print(result)
-                if key in result:
-                    print(result[key])
-                    assert result[key] == expected_result
-                else:
-                    assert expected_result == False
+                permissions =r['result'][0]['expressions'][0]['value']
+
+                return {
+                    "vault": vault,
+                    "idp": idp,
+                    "input": input,
+                    "permissions": permissions
+                }
+
+
+def evaluate_permissions(user, input, key, expected_result):
+    r = evaluate_opa(user, input)
+    print(json.dumps(r))
+    result = r["permissions"]
+    if key in result:
+        print(result[key])
+        assert result[key] == expected_result
+    else:
+        assert expected_result == False
 
 
 def get_site_admin_tests():
@@ -248,8 +251,8 @@ def get_site_admin_tests():
 
 
 @pytest.mark.parametrize('user, expected_result', get_site_admin_tests())
-def test_site_admin(user, expected_result, groups, users, studies):
-    evaluate_opa(user, {}, "site_admin", expected_result, groups, users, studies)
+def test_site_admin(user, expected_result):
+    evaluate_permissions(user, {}, "site_admin", expected_result)
 
 
 def get_user_studies():
@@ -279,8 +282,8 @@ def get_user_studies():
 
 
 @pytest.mark.parametrize('user, input, expected_result', get_user_studies())
-def test_user_studies(user, input, expected_result, groups, users, studies):
-    evaluate_opa(user, input, "studies", expected_result, groups, users, studies)
+def test_user_studies(user, input, expected_result):
+    evaluate_permissions(user, input, "studies", expected_result)
 
 
 def get_curation_allowed():
@@ -342,6 +345,6 @@ def get_curation_allowed():
     ]
 
 @pytest.mark.parametrize('user, input, expected_result', get_curation_allowed())
-def test_curation_allowed(user, input, expected_result, groups, users, studies):
-    evaluate_opa(user, input, "allowed", expected_result, groups, users, studies)
+def test_curation_allowed(user, input, expected_result):
+    evaluate_permissions(user, input, "allowed", expected_result)
 
