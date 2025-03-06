@@ -102,18 +102,11 @@ def is_site_admin(request, token=None):
     headers = {
         "Authorization": f"Bearer {token}"
     }
-    response = requests.post(
-        OPA_URL + "/v1/data/permissions",
-        headers=headers,
-        json={
-            "input": {
-                    "token": token
-                }
-            }
-        )
-    if response.status_code == 200:
-        if 'site_admin' in response.json()["result"]:
-            return response.json()["result"]["site_admin"]
+    response, status_code = get_opa_permissions(bearer_token=token)
+
+    if status_code == 200:
+        if 'site_admin' in response["result"]:
+            return response["result"]["site_admin"]
     return False
 
 
