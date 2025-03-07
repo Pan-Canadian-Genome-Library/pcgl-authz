@@ -168,12 +168,20 @@ USERS = {
 }
 
 
+STORE = {}
+
+
 class FakeRequest:
-    def __init__(self, token, path, method, study):
+    def __init__(self, token, path=None, method=None, study=None, body=None):
         self.headers = {"Authorization": f"Bearer {token}"}
         self.path = path
         self.method = method
         self.study = study
+        self.body = body
+
+    @pytest.mark.asyncio
+    async def json(self):
+        return self.body
 
 
 @pytest.fixture(autouse=True)
@@ -184,8 +192,45 @@ def vault():
     data["vault"]["groups"] = GROUPS
     with open(f"{DEFAULTS_DIR}/paths.json") as f:
         paths = json.load(f)
+        STORE["paths"] = paths
         data["vault"]["paths"] = paths["paths"]
     return data
+
+
+def permissions(*args, **kwargs):
+    if "bearer_token" in kwargs:
+        bearer_token = kwargs["bearer_token"]
+    input_body = {
+        "token": bearer_token,
+        "body": {}
+    }
+    if "path" in kwargs:
+        input_body["body"]["path"] = kwargs["path"]
+    if "method" in kwargs:
+        input_body["body"]["method"] = kwargs["method"]
+    if "study" in kwargs:
+        input_body["body"]["study"] = kwargs["study"]
+    result = evaluate_opa(bearer_token, input_body)["permissions"]
+    print(json.dumps(result, indent=2))
+    return result, 200
+
+
+@pytest.fixture(autouse=True)
+def setup_service_store(monkeypatch):
+    monkeypatch.setattr(auth, "get_opa_permissions", permissions)
+    monkeypatch.setattr(auth, "get_service_store_secret", get_service_store_secret)
+    monkeypatch.setattr(auth, "set_service_store_secret", set_service_store_secret)
+
+
+def get_service_store_secret(*args, **kwargs):
+    if kwargs["key"] not in STORE:
+        return {"error": "error"}, 404
+    return STORE[kwargs["key"]], 200
+
+
+def set_service_store_secret(*args, **kwargs):
+    STORE[kwargs["key"]] = json.loads(kwargs["value"])
+    return STORE[kwargs["key"]], 200
 
 
 def evaluate_opa(user, input, vault=None):
@@ -201,6 +246,7 @@ def evaluate_opa(user, input, vault=None):
     vault["vault"]["groups"] = GROUPS
     with open(f"{DEFAULTS_DIR}/paths.json") as f:
         paths = json.load(f)
+        STORE["paths"] = paths
         vault["vault"]["paths"] = paths["paths"]
 
     user_read_auth = USERS[user]
@@ -244,7 +290,7 @@ def evaluate_opa(user, input, vault=None):
             }
 
 def evaluate_permissions(user, input, key, expected_result, vault):
-    r = evaluate_opa(user, input, vault)
+    r = evaluate_opa(user, input)
     print(json.dumps(r))
     result = r["permissions"]
     if key in result:
@@ -365,24 +411,44 @@ def get_curation_allowed():
 def test_curation_allowed(user, input, expected_result, vault):
     evaluate_permissions(user, input, "allowed", expected_result, vault)
 
-def permissions(*args, **kwargs):
-    if "bearer_token" in kwargs:
-        bearer_token = kwargs["bearer_token"]
-    input_body = {
-        # "body": {"path": path, "method": method},
-        "token": bearer_token
-    }
-    # if study is not None:
-    #     input_body["body"]["study"] = study
-    r = evaluate_opa(bearer_token, input_body, vault)
-    result = {"result": r["permissions"]}
-    print(json.dumps(result, indent=2))
-    return result, 200
 
-def test_call(monkeypatch):
-    request = FakeRequest("site_admin", "/authz/services", "get", "synth1")
-    monkeypatch.setattr(connexion, "request", request)
-    monkeypatch.setattr(auth, "get_opa_permissions", permissions)
-    response = authz_operations.list_services()
+def test_groups(monkeypatch):
+    monkeypatch.setattr(connexion, "request", FakeRequest("site_admin"))
+
+    response, status_code = authz_operations.list_group("admin")
     print(response)
-    assert False
+    assert len(response) == 0
+
+
+@pytest.mark.asyncio
+async def test_add_service(monkeypatch):
+    body = {
+      "readable": [],
+      "editable": [
+        {
+          "method": "GET",
+          "endpoint": "fake_service/?.*"
+        }
+      ],
+      "service_id": "fake_service"
+    }
+    request = FakeRequest("site_admin", "/authz/services", "post", "synth1", body)
+
+    monkeypatch.setattr(connexion, "request", request)
+    response = await authz_operations.add_service()
+    response, status_code = authz_operations.list_services()
+    print(response)
+
+    assert len(response) > 0
+
+    response, status_code = authz_operations.get_service("fake_service")
+    assert "service_id" in response
+    assert response["service_id"] == "fake_service"
+
+
+def test_remove_service(monkeypatch):
+    monkeypatch.setattr(connexion, "request", FakeRequest("site_admin"))
+
+    response, status_code = authz_operations.remove_service("fake_service")
+    response, status_code = authz_operations.list_services()
+    assert len(response) == 0
