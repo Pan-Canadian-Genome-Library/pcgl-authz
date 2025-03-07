@@ -158,7 +158,7 @@ paths:
                 type: array
                 items:
                   type: object
-  /user/{user_id}/study:
+  /user/{user_id}:
     parameters:
       - in: path
         name: user_id

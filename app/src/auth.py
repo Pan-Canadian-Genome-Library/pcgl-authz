@@ -173,6 +173,15 @@ def get_user_by_comanage_id(comanage_id):
     return get_service_store_secret("opa", key=f"users/{comanage_id}")
 
 
+def get_self(request, token=None):
+    oidcsub = get_oidcsub(request, token=token)
+    user_index, status_code = get_service_store_secret("opa", key=f"users/index")
+    if status_code == 200:
+        if oidcsub in user_index:
+            return get_service_store_secret("opa", key=f"users/{user_index[oidcsub]}")
+    return {"error": f"could not find user {oidcsub}"}, 404
+
+
 def lookup_user_by_email(email):
     user_index, status_code = get_service_store_secret("opa", key=f"users/index")
     if status_code == 200:
