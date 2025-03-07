@@ -1,7 +1,6 @@
 import os
 import re
 import requests
-import jwt
 import base64
 import json
 import uuid
@@ -280,7 +279,7 @@ def get_service(service_id):
     """
     Returns a Service for the service_id
     """
-    response, status_code = get_service_store_secret("opa", key=f"service/{service_id}")
+    response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
     if status_code < 300:
         return response, status_code
     return {"message": f"{service_id} not found"}, status_code
