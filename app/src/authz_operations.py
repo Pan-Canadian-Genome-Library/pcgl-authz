@@ -45,7 +45,7 @@ def get_service_info():
 @app.route('/group/<path:group_id>')
 def list_group(group_id):
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/group/{group_id}"):
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"authz/group/{group_id}"):
             groups, status_code = auth.get_comanage_groups()
             if status_code == 200:
                 result = []
@@ -110,7 +110,7 @@ def remove_service(service_id):
 
 def list_study_authorizations():
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/study"):
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"authz/study"):
             response, status_code = auth.list_studies()
             return response, status_code
         return {"error": "User is not authorized to list studies"}, 403

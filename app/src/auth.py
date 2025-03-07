@@ -98,14 +98,11 @@ def is_site_admin(request, token=None):
     """
     token = get_auth_token(request, token=token)
 
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
     response, status_code = get_opa_permissions(bearer_token=token)
 
     if status_code == 200:
-        if 'site_admin' in response["result"]:
-            return response["result"]["site_admin"]
+        if 'site_admin' in response:
+            return response["site_admin"]
     return False
 
 
