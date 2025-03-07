@@ -5,6 +5,7 @@ import sys
 import pytest
 import subprocess
 import tempfile
+import connexion
 from datetime import date
 
 
@@ -15,7 +16,9 @@ THE_FUTURE = str(date(TODAY.year + 1, TODAY.month, TODAY.day))
 # assumes that we are running pytest from the repo directory
 REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
 DEFAULTS_DIR = f"{REPO_DIR}/defaults"
-sys.path.insert(0, os.path.abspath(f"{REPO_DIR}"))
+sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/src"))
+import authz_operations
+import auth
 
 GROUPS = {
   "admin": [
@@ -165,11 +168,41 @@ USERS = {
 }
 
 
-def setup_vault(user):
+class FakeRequest:
+    def __init__(self, token, path, method, study):
+        self.headers = {"Authorization": f"Bearer {token}"}
+        self.path = path
+        self.method = method
+        self.study = study
+
+
+@pytest.fixture(autouse=True)
+def vault():
+    data = {"vault": {}}
+    data["vault"]["study_auths"] = STUDIES
+    data["vault"]["all_studies"] = list(STUDIES.keys())
+    data["vault"]["groups"] = GROUPS
+    with open(f"{DEFAULTS_DIR}/paths.json") as f:
+        paths = json.load(f)
+        data["vault"]["paths"] = paths["paths"]
+    return data
+
+
+def evaluate_opa(user, input, vault=None):
+    args = [
+        "./opa", "eval",
+        "--data", "permissions_engine/authz.rego",
+        "--data", "permissions_engine/calculate.rego",
+        "--data", "permissions_engine/permissions.rego",
+    ]
     vault = {"vault": {}}
     vault["vault"]["study_auths"] = STUDIES
     vault["vault"]["all_studies"] = list(STUDIES.keys())
     vault["vault"]["groups"] = GROUPS
+    with open(f"{DEFAULTS_DIR}/paths.json") as f:
+        paths = json.load(f)
+        vault["vault"]["paths"] = paths["paths"]
+
     user_read_auth = USERS[user]
     if "study_authorizations" in user_read_auth:
         vault["vault"]["user_studies"] = user_read_auth["study_authorizations"]
@@ -179,20 +212,6 @@ def setup_vault(user):
     else:
         vault["vault"]["user_studies"] = []
         vault["vault"]["user_auth"] = {"status_code": 403}
-    with open(f"{DEFAULTS_DIR}/paths.json") as f:
-        paths = json.load(f)
-        vault["vault"]["paths"] = paths["paths"]
-    return vault
-
-
-def evaluate_opa(user, input):
-    args = [
-        "./opa", "eval",
-        "--data", "permissions_engine/authz.rego",
-        "--data", "permissions_engine/calculate.rego",
-        "--data", "permissions_engine/permissions.rego",
-    ]
-    vault = setup_vault(user)
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as vault_fp:
         json.dump(vault, vault_fp)
@@ -207,27 +226,25 @@ def evaluate_opa(user, input):
             json.dump(idp, idp_fp)
             idp_fp.close()
             args.extend(["--data", idp_fp.name])
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as input_fp:
-                json.dump(input, input_fp)
-                input_fp.close()
-                args.extend(["--input", input_fp.name])
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as fp:
+                json.dump(input, fp)
+                fp.close()
+                args.extend(["--input", fp.name])
 
-                # finally, query arg:
-                args.append("data.permissions")
-                p = subprocess.run(args, stdout=subprocess.PIPE)
-                r =  json.loads(p.stdout)
-                permissions =r['result'][0]['expressions'][0]['value']
+            # finally, query arg:
+            args.append("data.permissions")
+            p = subprocess.run(args, stdout=subprocess.PIPE)
+            r =  json.loads(p.stdout)
+            permissions =r['result'][0]['expressions'][0]['value']
 
-                return {
-                    "vault": vault,
-                    "idp": idp,
-                    "input": input,
-                    "permissions": permissions
-                }
+            return {
+                "vault": vault,
+                "idp": idp,
+                "permissions": permissions
+            }
 
-
-def evaluate_permissions(user, input, key, expected_result):
-    r = evaluate_opa(user, input)
+def evaluate_permissions(user, input, key, expected_result, vault):
+    r = evaluate_opa(user, input, vault)
     print(json.dumps(r))
     result = r["permissions"]
     if key in result:
@@ -251,8 +268,8 @@ def get_site_admin_tests():
 
 
 @pytest.mark.parametrize('user, expected_result', get_site_admin_tests())
-def test_site_admin(user, expected_result):
-    evaluate_permissions(user, {}, "site_admin", expected_result)
+def test_site_admin(user, expected_result, vault):
+    evaluate_permissions(user, {}, "site_admin", expected_result, vault)
 
 
 def get_user_studies():
@@ -282,8 +299,8 @@ def get_user_studies():
 
 
 @pytest.mark.parametrize('user, input, expected_result', get_user_studies())
-def test_user_studies(user, input, expected_result):
-    evaluate_permissions(user, input, "studies", expected_result)
+def test_user_studies(user, input, expected_result, vault):
+    evaluate_permissions(user, input, "studies", expected_result, vault)
 
 
 def get_curation_allowed():
@@ -345,6 +362,27 @@ def get_curation_allowed():
     ]
 
 @pytest.mark.parametrize('user, input, expected_result', get_curation_allowed())
-def test_curation_allowed(user, input, expected_result):
-    evaluate_permissions(user, input, "allowed", expected_result)
+def test_curation_allowed(user, input, expected_result, vault):
+    evaluate_permissions(user, input, "allowed", expected_result, vault)
 
+def permissions(*args, **kwargs):
+    if "bearer_token" in kwargs:
+        bearer_token = kwargs["bearer_token"]
+    input_body = {
+        # "body": {"path": path, "method": method},
+        "token": bearer_token
+    }
+    # if study is not None:
+    #     input_body["body"]["study"] = study
+    r = evaluate_opa(bearer_token, input_body, vault)
+    result = {"result": r["permissions"]}
+    print(json.dumps(result, indent=2))
+    return result, 200
+
+def test_call(monkeypatch):
+    request = FakeRequest("site_admin", "/authz/services", "get", "synth1")
+    monkeypatch.setattr(connexion, "request", request)
+    monkeypatch.setattr(auth, "get_opa_permissions", permissions)
+    response = authz_operations.list_services()
+    print(response)
+    assert False
