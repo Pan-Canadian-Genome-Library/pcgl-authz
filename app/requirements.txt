@@ -9,5 +9,4 @@ gunicorn>=23.0.0
 uvicorn[standard]==0.30.6
 werkzeug>=2.3.8 # not directly required, pinned by Snyk to avoid a vulnerability
 pytest==8.3.3
-PyJWT==2.6.0
-cryptography>=43.0.1
+pytest-asyncio>=0.25.3
