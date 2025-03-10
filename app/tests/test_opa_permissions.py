@@ -197,7 +197,7 @@ def vault():
     return data
 
 
-def permissions(*args, **kwargs):
+def get_opa_permissions(*args, **kwargs):
     if "bearer_token" in kwargs:
         bearer_token = kwargs["bearer_token"]
     input_body = {
@@ -217,7 +217,7 @@ def permissions(*args, **kwargs):
 
 @pytest.fixture(autouse=True)
 def setup_service_store(monkeypatch):
-    monkeypatch.setattr(auth, "get_opa_permissions", permissions)
+    monkeypatch.setattr(auth, "get_opa_permissions", get_opa_permissions)
     monkeypatch.setattr(auth, "get_service_store_secret", get_service_store_secret)
     monkeypatch.setattr(auth, "set_service_store_secret", set_service_store_secret)
 
@@ -240,14 +240,15 @@ def evaluate_opa(user, input, vault=None):
         "--data", "permissions_engine/calculate.rego",
         "--data", "permissions_engine/permissions.rego",
     ]
-    vault = {"vault": {}}
-    vault["vault"]["study_auths"] = STUDIES
-    vault["vault"]["all_studies"] = list(STUDIES.keys())
-    vault["vault"]["groups"] = GROUPS
-    with open(f"{DEFAULTS_DIR}/paths.json") as f:
-        paths = json.load(f)
-        STORE["paths"] = paths
-        vault["vault"]["paths"] = paths["paths"]
+    if vault is None:
+        vault = {"vault": {}}
+        vault["vault"]["study_auths"] = STUDIES
+        vault["vault"]["all_studies"] = list(STUDIES.keys())
+        vault["vault"]["groups"] = GROUPS
+        with open(f"{DEFAULTS_DIR}/paths.json") as f:
+            paths = json.load(f)
+            vault["store"]["paths"] = paths
+            vault["vault"]["paths"] = paths["paths"]
 
     user_read_auth = USERS[user]
     if "study_authorizations" in user_read_auth:
@@ -289,7 +290,7 @@ def evaluate_opa(user, input, vault=None):
                 "permissions": permissions
             }
 
-def evaluate_permissions(user, input, key, expected_result, vault):
+def evaluate_permissions(user, input, key, expected_result):
     r = evaluate_opa(user, input)
     print(json.dumps(r))
     result = r["permissions"]
@@ -314,8 +315,8 @@ def get_site_admin_tests():
 
 
 @pytest.mark.parametrize('user, expected_result', get_site_admin_tests())
-def test_site_admin(user, expected_result, vault):
-    evaluate_permissions(user, {}, "site_admin", expected_result, vault)
+def test_site_admin(user, expected_result):
+    evaluate_permissions(user, {}, "site_admin", expected_result)
 
 
 def get_user_studies():
@@ -345,8 +346,8 @@ def get_user_studies():
 
 
 @pytest.mark.parametrize('user, input, expected_result', get_user_studies())
-def test_user_studies(user, input, expected_result, vault):
-    evaluate_permissions(user, input, "studies", expected_result, vault)
+def test_user_studies(user, input, expected_result):
+    evaluate_permissions(user, input, "studies", expected_result)
 
 
 def get_curation_allowed():
@@ -408,8 +409,8 @@ def get_curation_allowed():
     ]
 
 @pytest.mark.parametrize('user, input, expected_result', get_curation_allowed())
-def test_curation_allowed(user, input, expected_result, vault):
-    evaluate_permissions(user, input, "allowed", expected_result, vault)
+def test_curation_allowed(user, input, expected_result):
+    evaluate_permissions(user, input, "allowed", expected_result)
 
 
 def test_groups(monkeypatch):
@@ -421,7 +422,7 @@ def test_groups(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_add_service(monkeypatch):
+async def test_add_service(monkeypatch, vault):
     body = {
       "readable": [],
       "editable": [
