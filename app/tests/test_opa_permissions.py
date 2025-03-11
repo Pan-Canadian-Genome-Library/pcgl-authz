@@ -193,7 +193,7 @@ def vault():
     with open(f"{DEFAULTS_DIR}/paths.json") as f:
         paths = json.load(f)
         STORE["paths"] = paths
-        data["vault"]["paths"] = paths["paths"]
+        data["vault"]["paths"] = STORE["paths"]
     return data
 
 
@@ -247,7 +247,7 @@ def evaluate_opa(user, input, vault=None):
         vault["vault"]["groups"] = GROUPS
         with open(f"{DEFAULTS_DIR}/paths.json") as f:
             paths = json.load(f)
-            vault["store"]["paths"] = paths
+            STORE["paths"] = paths
             vault["vault"]["paths"] = paths["paths"]
 
     user_read_auth = USERS[user]
