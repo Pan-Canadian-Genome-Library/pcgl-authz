@@ -4,6 +4,7 @@ info:
   title: 'PCGL Authorization Service'
   description: 'API for determining authorization in PCGL'
 servers:
+  - url: http://localhost:1235/authz
   - url: /authz
 paths:
   /service-info:
