@@ -88,7 +88,7 @@ echo ">> enabling approle"
 docker exec $vault sh -c "vault auth enable approle"
 
 echo ">> setting up approle policy"
-docker exec $vault sh -c "echo 'path \"auth/approle/role/*\" {capabilities = [\"create\", \"update\", \"read\", \"delete\"]}' > approle-policy.hcl; vault policy write approle approle-policy.hcl"
+docker exec $vault sh -c "echo 'path \"auth/approle/role/*\" {capabilities = [\"read\", \"update\"]}' > approle-policy.hcl; vault policy write approle approle-policy.hcl"
 
 echo
 echo ">> setting up approle role"
