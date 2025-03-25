@@ -88,7 +88,12 @@ async def add_service():
 def get_service(service_id):
     try:
         if auth.is_site_admin(connexion.request):
-            return auth.get_service(service_id)
+            service, status_code = auth.get_service(service_id)
+            if status_code < 300:
+                service.pop("service_uuid")
+                return service, 200
+            else:
+                return {"error": "No service found"}, 404
         return {"error": "User is not authorized to get services"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
@@ -100,6 +105,36 @@ def remove_service(service_id):
         if auth.is_site_admin(connexion.request):
             return auth.remove_service(service_id)
         return {"error": "User is not authorized to remove services"}, 403
+    except Exception as e:
+        return {"error": f"{type(e)} {str(e)}"}, 500
+
+
+@app.route('/service/<path:service_id>')
+async def create_service_token(service_id):
+    service = await connexion.request.json()
+    service_uuid = service["service_uuid"]
+    try:
+        if auth.is_site_admin(connexion.request):
+            service_dict, status_code = auth.get_service(service_id)
+            if status_code == 200:
+                if service_dict["service_uuid"] != service_uuid:
+                    return {"error": f"Service UUID does not match service name"}
+                token = auth.create_service_token(service_uuid)
+                return {"token": token}, 200
+            return {"error": "Could not find service"}, 404
+        return {"error": "User is not authorized to create verification tokens"}, 403
+    except Exception as e:
+        return {"error": f"{type(e)} {str(e)}"}, 500
+
+
+@app.route('/service/<path:service_id>')
+def verify_service_token(service_id):
+    try:
+        if auth.is_site_admin(connexion.request):
+            if "X-Service-Token" in connexion.request.headers:
+                return {"result": auth.verify_service_token(service_id, connexion.request.headers["X-Service-Token"])}
+            return {"error": "no X-Service-Token present"}, 500
+        return {"error": "User is not authorized to create verification tokens"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 

@@ -84,6 +84,45 @@ paths:
       responses:
         200:
           description: Success
+  /service/{service_id}/verify:
+    parameters:
+      - in: path
+        name: service_id
+        schema:
+          type: string
+        required: true
+    get:
+      summary: Verify a service token
+      operationId: authz_operations.verify_service_token
+      parameters:
+        - in: header
+          name: X-Service-Token
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    description: Whether or not the service token comes from the service
+                    type: boolean
+    post:
+      summary: Create a verification token for a service
+      operationId: authz_operations.create_service_token
+      requestBody:
+        $ref: '#/components/requestBodies/ServiceVerificationTokenRequest'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRegistration'
   /study:
     post:
       summary: Add authorization information for a study
@@ -250,6 +289,17 @@ components:
         'application/json':
           schema:
             $ref: "#/components/schemas/ServiceRegistration"
+    ServiceVerificationTokenRequest:
+      content:
+        'application/json':
+          schema:
+            type: object
+            properties:
+              service_uuid:
+                type: string
+                description: UUID of service, returned as part of service registration
+            required:
+              - service_uuid
     StudyAuthorizationRequest:
       content:
         'application/json':

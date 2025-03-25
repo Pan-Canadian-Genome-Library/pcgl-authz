@@ -291,6 +291,7 @@ def list_services():
         for service_id in services:
             response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
             if status_code == 200:
+                response.pop("service_uuid")
                 result.append(response)
     return result, 200
 
@@ -298,11 +299,17 @@ def list_services():
 def add_service(service_dict):
     service_id = service_dict["service_id"]
 
+    updated_service = False
     # list the service in the services index:
-    services, status_code = get_service_store_secret("opa", key="services")
-    if status_code == 404:
-        services = []
-    services.append(service_id)
+    services = []
+    response, status_code = get_service_store_secret("opa", key="services")
+    if status_code == 200:
+        services = response["services"]
+    if service_id not in services:
+        services.append(service_id)
+        service_dict["service_uuid"] = str(uuid.uuid1())
+    else:
+        updated_service = True
     set_service_store_secret("opa", key="services", value=json.dumps({"services": services}))
 
     # add the actions to the paths
@@ -311,16 +318,25 @@ def add_service(service_dict):
         paths = paths_response["paths"]
         # add the actions:
         for action in service_dict["readable"]:
-            if action["endpoint"] in paths["read"][action["method"].lower()]:
-                return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
+            if not updated_service:
+                if action["endpoint"] in paths["read"][action["method"].lower()]:
+                    return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
             paths["read"][action["method"].lower()].append(action["endpoint"])
         for action in service_dict["editable"]:
-            if action["endpoint"] in paths["edit"][action["method"].lower()]:
-                return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
+            if not updated_service:
+                if action["endpoint"] in paths["edit"][action["method"].lower()]:
+                    return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
             paths["edit"][action["method"].lower()].append(action["endpoint"])
         response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps(paths_response))
+    else:
+        return {"error": "paths not available"}, 500
 
     # write the service into its own store:
+    # if updating, get the uuid:
+    if updated_service:
+        response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
+        if status_code == 200:
+            service_dict["service_uuid"] = response["service_uuid"]
     response, status_code = set_service_store_secret("opa", key=f"services/{service_id}", value=json.dumps(service_dict))
     return response, status_code
 
