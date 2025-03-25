@@ -14,6 +14,7 @@ VAULT_URL = os.getenv('VAULT_URL', "http://localhost:8200")
 SERVICE_NAME = os.getenv("SERVICE_NAME")
 APPROLE_TOKEN_FILE = os.getenv("APPROLE_TOKEN_FILE", "/home/pcgl/approle-token")
 ROLE_ID_FILE = os.getenv("ROLE_ID_FILE", "/home/pcgl/roleid")
+VERIFY_ROLE_ID_FILE = os.getenv("ROLE_ID_FILE", "/home/pcgl/verify-roleid")
 PCGL_COID = os.getenv("PCGL_COID", "")
 PCGL_CORE_API_USER = os.getenv("PCGL_CORE_API_USER", "")
 PCGL_CORE_API_KEY = os.getenv("PCGL_CORE_API_KEY", "")
@@ -475,6 +476,61 @@ def delete_service_store_secret(service, key=None, role_id=None, secret_id=None,
     url = f"{VAULT_URL}/v1/{service}/{key}"
     response = requests.delete(url, headers=headers)
     return response.text, response.status_code
+
+
+def create_service_token(service_uuid):
+    """
+    Create a token that can be used to verify this service. Should only be called from inside a container.
+    """
+    # this will get us a fresh approle token for this service
+    role_id = None
+    try:
+        with open(VERIFY_ROLE_ID_FILE) as f:
+            role_id = f.read().strip()
+    except Exception as e:
+        raise AuthzError(str(e))
+
+    token = get_vault_token_for_service("verify", role_id=role_id)
+
+    headers = {
+        "X-Vault-Token": token
+    }
+
+    # create the random service-token:
+    url = f"{VAULT_URL}/v1/cubbyhole/{token}"
+    try:
+        response = requests.post(url, headers=headers, data={"service": service_uuid})
+    except Exception as e:
+        raise Exception(f"Could not create_service_token from {service_uuid}: {str(e)}")
+    return str(token)
+
+
+def verify_service_token(service=None, token=None):
+    """
+    Verify that a token comes from a particular service. Should only be called from inside a container.
+    """
+    if service is None:
+        return False
+    if token is None:
+        return False
+
+    service_dict, status_code = get_service(service)
+    if status_code == 200:
+        body = {
+            "input": {
+                "token": token,
+                "body": {
+                "service": service_dict["service_uuid"]
+                }
+            }
+        }
+
+        response = requests.post(
+            OPA_URL + "/v1/data/service/verified",
+            json=body
+        )
+        return response.status_code == 200 and "result" in response.json() and response.json()["result"]
+    return {"error": f"Could not find service {service}"}, 404
 
 
 def get_user_record(comanage_id=None, oidcsub=None, force=False):
