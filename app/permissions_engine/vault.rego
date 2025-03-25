@@ -35,3 +35,7 @@ default user_studies := {}
 user_studies := user_auth.body.data.study_authorizations if {
 	user_auth.status_code = 200
 }
+
+default service := ""
+# if there is a service associated with this token:
+service := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/cubbyhole", input.token]), "headers": {"X-Vault-Token": input.token}}).body.data.service

@@ -34,3 +34,9 @@ allow if {
 	data.permissions.valid_token == true
 	input.body.input.token == input.identity
 }
+
+# Any service should be able to verify that a service is who it says it is:
+allow if {
+	input.path == ["v1", "data", "service", "verified"]
+	input.method == "POST"
+}

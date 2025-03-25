@@ -34,6 +34,18 @@ create_service_store() {
    echo ">> create a kv store for opa"
    docker exec $vault vault secrets enable -path=opa -description="opa kv store" kv
 
+   echo ">> create a policy for service-verification"
+   docker exec $vault sh -c "echo 'path \"auth/approle/role/verify/role-id\" {capabilities = [\"read\"]}' >> verify-policy.hcl; echo 'path \"auth/approle/role/verify/secret-id\" {capabilities = [\"update\"]}' >> verify-policy.hcl; vault policy write verify verify-policy.hcl"
+
+   echo ">> create an approle for verify"
+   cmd="vault write auth/approle/role/verify secret_id_ttl=10m token_ttl=20m token_max_ttl=30m token_policies=verify"
+   docker exec $vault sh -c "${cmd}"
+
+   echo ">> save the role id to secrets"
+   docker exec $vault sh -c "vault read -field=role_id auth/approle/role/verify/role-id" > tmp/vault/verify-roleid
+   docker cp $PWD/tmp/vault/verify-roleid pcgl-authz_flask_1:/home/pcgl/verify-roleid
+   rm $PWD/tmp/vault/verify-roleid
+
    docker cp $PWD/tmp/vault/approle-token pcgl-authz_flask_1:/home/pcgl/approle-token
 }
 
