@@ -61,6 +61,11 @@ paths:
       responses:
         200:
           description: Success
+          summary: Includes the assigned service UUID. The registering service needs to save the UUID for creating verification tokens.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRegistration'
   /service/{service_id}:
     parameters:
       - in: path
