@@ -179,8 +179,7 @@ class FakeRequest:
         self.study = study
         self.body = body
 
-    @pytest.mark.asyncio
-    async def json(self):
+    def json(self):
         return self.body
 
 
@@ -190,6 +189,7 @@ def vault():
     data["vault"]["study_auths"] = STUDIES
     data["vault"]["all_studies"] = list(STUDIES.keys())
     data["vault"]["groups"] = GROUPS
+    data["vault"]["test"] = {"hello": "hi"}
     with open(f"{DEFAULTS_DIR}/paths.json") as f:
         paths = json.load(f)
         STORE["paths"] = paths
@@ -421,35 +421,50 @@ def test_groups(monkeypatch):
     assert len(response) == 0
 
 
-@pytest.mark.asyncio
-async def test_add_service(monkeypatch, vault):
+def test_add_service(monkeypatch, vault):
     body = {
-      "readable": [],
-      "editable": [
-        {
-          "method": "GET",
-          "endpoint": "fake_service/?.*"
-        }
-      ],
-      "service_id": "fake_service"
+        "readable": [
+            {
+                "method": "GET",
+                "endpoint": "fake_service/read/?.*"
+            }
+        ],
+        "editable": [
+            {
+                "method": "POST",
+                "endpoint": "fake_service/edit/?.*"
+            }
+        ],
+        "service_id": "fake_service",
+        "service_uuid": "testtetstetste"
     }
-    request = FakeRequest("site_admin", "/authz/services", "post", "synth1", body)
-
-    monkeypatch.setattr(connexion, "request", request)
-    response = await authz_operations.add_service()
-    response, status_code = authz_operations.list_services()
-    print(response)
-
+    response, status_code = auth.add_service(body)
+    response, status_code = auth.list_services()
     assert len(response) > 0
 
-    response, status_code = authz_operations.get_service("fake_service")
+    response, status_code = auth.get_service("fake_service")
     assert "service_id" in response
     assert response["service_id"] == "fake_service"
 
 
-def test_remove_service(monkeypatch):
-    monkeypatch.setattr(connexion, "request", FakeRequest("site_admin"))
+def test_is_allowed(monkeypatch, vault):
+    # site admin should be able to do anything
+    response = auth.is_action_allowed_for_study(None, token="site_admin", method="GET", path="fake_service/edit/thingy", study="SYNTHETIC-3")
+    print(response)
+    assert response == True
 
-    response, status_code = authz_operations.remove_service("fake_service")
-    response, status_code = authz_operations.list_services()
+    # user3 can curate and read SYNTHETIC-3
+    response = auth.is_action_allowed_for_study(None, token="user3", method="POST", path="fake_service/edit/thingy", study="SYNTHETIC-3")
+    print(response)
+    assert response == False
+
+    # user3 can curate and read SYNTHETIC-3, but GET is not valid for an edit path
+    response = auth.is_action_allowed_for_study(None, token="user3", method="GET", path="fake_service/edit/thingy", study="SYNTHETIC-3")
+    print(response)
+    assert response == False
+
+
+def test_remove_service(monkeypatch):
+    response, status_code = auth.remove_service("fake_service")
+    response, status_code = auth.list_services()
     assert len(response) == 0
