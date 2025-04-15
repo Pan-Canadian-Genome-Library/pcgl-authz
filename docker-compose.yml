@@ -68,7 +68,7 @@ services:
     # Reverse proxy for routing and data services auth
     image: caddy:2.9.1
     # restart: unless-stopped
-    user: ${PCGL_UID=}
+    user: ${PCGL_UID}
     cap_add:
       - NET_ADMIN
     environment:
