@@ -62,3 +62,23 @@ services:
     cap_add:
       - IPC_LOCK
     command: vault server -config=/vault/config/vault-config.json
+  
+  # Comment this section out if reverse-proxy is not needed
+  caddy:
+    # Reverse proxy for routing and data services auth
+    image: caddy:2.9.1
+    # restart: unless-stopped
+    user: "1000"
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PCGL_AUTHZ_DOMAIN
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - $PWD/caddy/etc:/etc/caddy
+      - $PWD/caddy/sites:/srv
+      - $PWD/caddy/data:/data
+      - $PWD/caddy/config:/config
