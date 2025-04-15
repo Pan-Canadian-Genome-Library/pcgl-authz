@@ -1,3 +1,8 @@
 secrets.sh
 tmp/
 *.paw
+
+# ignore caddy volumes, except etc for Caddyfile
+caddy/data
+caddy/config
+caddy/sites

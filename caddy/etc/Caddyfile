@@ -1,0 +1,8 @@
+{
+    # Uncomment for Caddy debug mode
+    #debug
+}
+
+{$PCGL_AUTHZ_DOMAIN} {
+    reverse_proxy localhost:1235
+}

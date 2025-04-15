@@ -1,0 +1,83 @@
+volumes:
+  auth-data:
+  vault-data:
+
+services:
+  flask:
+    build:
+      context: .
+      args:
+        venv_python: "3.12"
+    labels:
+      - "pcgl=flask"
+    ports:
+      - 1235:1235
+    volumes:
+      - auth-data:/app
+      - vault-data:/vault
+    environment:
+      OPA_URL: http://opa:8181
+      VAULT_URL: http://vault:8200
+      SERVICE_NAME: opa
+      PCGL_USER_KEY: email
+      PCGL_ISSUER: ${PCGL_ISSUER}
+      PCGL_CLIENT_ID: ${PCGL_CLIENT_ID}
+      PCGL_CORE_API_USER: ${PCGL_CORE_API_USER}
+      PCGL_CORE_API_KEY: ${PCGL_CORE_API_KEY}
+      PCGL_COID: ${PCGL_COID}
+      PCGL_API_URL: ${PCGL_API_URL}
+    entrypoint:
+      - "bash"
+      - "/app/entrypoint.sh"
+
+  opa:
+    image: openpolicyagent/opa:1.1.0-static
+    ports:
+      - "8181:8181"
+    labels:
+      - "pcgl=opa"
+    volumes:
+      - auth-data:/app
+    command:
+      - "run"
+      - "--set=decision_logs.console=true"
+      - "--log-level=info"
+      - "--authentication=token"
+      - "--authorization=basic"
+      - "-s"
+      - "--addr=0.0.0.0:8181"
+      - "app/permissions_engine/"
+
+  vault:
+    image: hashicorp/vault:1.13
+    labels:
+     - "pcgl=vault"
+    ports:
+      - 8200:8200
+    volumes:
+      - vault-data:/vault
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+      - VAULT_DISABLE_MLOCK=true
+    cap_add:
+      - IPC_LOCK
+    command: vault server -config=/vault/config/vault-config.json
+
+  caddy:
+    # Reverse proxy for routing and data services auth
+    image: caddy:2.9.1
+    # restart: unless-stopped
+    user: "1000"
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PCGL_AUTHZ_DOMAIN
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - $PWD/caddy/etc:/etc/caddy
+      - $PWD/caddy/sites:/srv
+      - $PWD/caddy/data:/data
+      - $PWD/caddy/config:/config

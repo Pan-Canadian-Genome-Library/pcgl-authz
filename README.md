@@ -37,3 +37,14 @@ There is a basic pytest suite that is primarily designed to test the Opa functio
 
 ## Cleanup
 Running the `clean.sh` script will tear down all of the Docker containers.
+
+## Running behind Caddy for HTTPS
+
+TODO: details
+
+```bash
+# Set the domain name variable, 
+export PCGL_AUTHZ_DOMAIN=auth.dev.pcgl.sd4h.ca
+
+docker compose -f docker-compose.proxy.yml up -d
+```
