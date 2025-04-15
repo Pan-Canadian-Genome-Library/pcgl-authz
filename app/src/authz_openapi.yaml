@@ -60,8 +60,7 @@ paths:
         $ref: '#/components/requestBodies/ServiceRegistrationRequest'
       responses:
         200:
-          description: Success
-          summary: Includes the assigned service UUID. The registering service needs to save the UUID for creating verification tokens.
+          description: Success. Includes the assigned service UUID. The registering service needs to save the UUID for creating verification tokens.
           content:
             application/json:
               schema:
