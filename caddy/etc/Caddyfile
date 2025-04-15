@@ -1,0 +1,9 @@
+{
+    # Uncomment for Caddy debug mode
+    #debug
+}
+
+{$PCGL_AUTHZ_DOMAIN} {
+    # uses the container alias to resolve the IP
+    reverse_proxy flask:1235
+}
