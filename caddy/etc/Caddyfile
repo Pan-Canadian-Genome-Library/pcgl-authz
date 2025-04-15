@@ -4,5 +4,6 @@
 }
 
 {$PCGL_AUTHZ_DOMAIN} {
-    reverse_proxy localhost:1235
+    # uses the container alias to resolve the IP
+    reverse_proxy flask:1235
 }
