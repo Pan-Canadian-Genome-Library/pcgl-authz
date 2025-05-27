@@ -587,9 +587,20 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
     response = requests.get(f"{PCGL_API_URL}/registry/email_addresses.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
     if response.status_code == 200:
         for email in response.json()["EmailAddresses"]:
-            if email not in emails:
+            if email["Mail"] not in emails:
                 emails.append(email["Mail"])
     user["emails"] = emails
+
+    # set up groups
+    groups = []
+    response = requests.get(f"{PCGL_API_URL}/registry/co_group_members.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
+    if response.status_code == 200:
+        for group in response.json()["CoGroupMembers"]:
+            group_id = group["CoGroupId"]
+            if group_id not in groups:
+                groups.append(group_id)
+    user["groups"] = groups
+
 
     set_service_store_secret("opa", key=f"users/{comanage_id}", value=json.dumps(user))
     status_code = 201 # Created
@@ -639,6 +650,7 @@ def get_comanage_groups():
             new_group = {
                 "id": group["Id"],
                 "description": group["Description"],
+                "name": group["Name"],
                 "members": []
             }
             response = requests.get(f"{PCGL_API_URL}/registry/co_group_members.json", params={"coid": PCGL_COID, "cogroupid": group["Id"]}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
@@ -646,8 +658,11 @@ def get_comanage_groups():
                 for member in response.json()["CoGroupMembers"]:
                     new_group["members"].append(str(member["Person"]["Id"]))
             result.append(new_group)
-        data = {"ids": {}}
+        data = {"ids": {}, "index": {}}
         for group in result:
+            data["ids"][group["description"]] = str(group["id"])
+            data["index"][str(group["id"])] = group
+            # special groups:
             if group["description"] == "PCGL Administrators":
                 data["ids"]["admin"] = str(group["id"])
                 data["admin"] = group["members"]
@@ -657,7 +672,7 @@ def get_comanage_groups():
             elif group["description"] == "PCGL Members":
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]
-        return data, 200
         set_service_store_secret("opa", key="groups", value=json.dumps(data))
+        return data, 200
 
     return response.text, response.status_code
