@@ -1,6 +1,6 @@
 # Service registration 
 
-In order to call the authorization API, PCGL services need to be registered with the authorization service. The authz service maintains a secret store in Vault with tokens for each service. When processing an API call, the authz service verifies the identity of the calling service by matching a provided X-Service-Token with the Vault secret store.  
+In order to enable authorization decisions, PCGL services need to be registered with the authorization service. This registration defines the actions implemented by the service, and generates a UUID for enabling service-to-service authorization.   
 
 ## API spec
 
