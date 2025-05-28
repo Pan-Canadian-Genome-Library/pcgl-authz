@@ -202,10 +202,10 @@ paths:
                 type: array
                 items:
                   type: object
-  /user/{user_id}:
+  /user/{pcgl_id}:
     parameters:
       - in: path
-        name: user_id
+        name: pcgl_id
         schema:
           type: string
         required: true

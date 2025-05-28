@@ -190,14 +190,14 @@ def remove_study_authorization(study_id):
 # DAC authorization for users
 ####
 
-@app.route('/user/<path:user_id>')
-def list_studies_for_user(user_id):
+@app.route('/user/<path:pcgl_id>')
+def list_studies_for_user(pcgl_id):
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{user_id}"):
-            if user_id == "me":
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{pcgl_id}"):
+            if pcgl_id == "me":
                 user_dict, status_code = auth.get_self(connexion.request)
             else:
-                user_dict, status_code = auth.get_user_by_pcglid(user_id)
+                user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
             if status_code == 200:
                 return list(user_dict["study_authorizations"].values()), status_code
             return user_dict, status_code
@@ -206,11 +206,11 @@ def list_studies_for_user(user_id):
         return {"error": f"{type(e)} {str(e)}"}, 500
 
 
-@app.route('/user/<path:user_id>')
-async def authorize_study_for_user(user_id):
+@app.route('/user/<path:pcgl_id>')
+async def authorize_study_for_user(pcgl_id):
     study_dict = await connexion.request.json()
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/user/{user_id}", study=study_dict["study_id"]):
+        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/user/{pcgl_id}", study=study_dict["study_id"]):
             # we need to check to see if the study even exists in the system
             all_studies, status_code = auth.list_studies()
             if status_code != 200:
@@ -218,7 +218,7 @@ async def authorize_study_for_user(user_id):
             if study_dict["study_id"] not in all_studies:
                 return {"error": f"Study {study_dict['study_id']} does not exist in {all_studies}"}
 
-            user_dict, status_code = auth.get_user_by_pcglid(user_id)
+            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
             if status_code == 200:
                 user_dict["study_authorizations"][study_dict["study_id"]] = study_dict
                 response, status_code = auth.write_user(user_dict)
@@ -231,11 +231,11 @@ async def authorize_study_for_user(user_id):
         return {"error": f"{type(e)} {str(e)}"}, 500
 
 
-@app.route('/user/<path:user_id>/study/<path:study_id>')
-def get_study_for_user(user_id, study_id):
+@app.route('/user/<path:pcgl_id>/study/<path:study_id>')
+def get_study_for_user(pcgl_id, study_id):
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{user_id}/study/{study_id}", study=study_id):
-            user_dict, status_code = auth.get_user_by_pcglid(user_id)
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{pcgl_id}/study/{study_id}", study=study_id):
+            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
             if status_code != 200:
                 return user_dict, status_code
             for p in user_dict["study_authorizations"]:
@@ -247,11 +247,11 @@ def get_study_for_user(user_id, study_id):
         return {"error": f"{type(e)} {str(e)}"}, 500
 
 
-@app.route('/user/<path:user_id>/study/<path:study_id>')
-def remove_study_for_user(user_id, study_id):
+@app.route('/user/<path:pcgl_id>/study/<path:study_id>')
+def remove_study_for_user(pcgl_id, study_id):
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="DELETE", path=f"/user/{user_id}/study/{study_id}", study=study_id):
-            user_dict, status_code = auth.get_user_by_pcglid(user_id)
+        if auth.is_action_allowed_for_study(connexion.request, method="DELETE", path=f"/user/{pcgl_id}/study/{study_id}", study=study_id):
+            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
             if status_code != 200:
                 return user_dict, status_code
             for p in user_dict["study_authorizations"]:
