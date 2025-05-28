@@ -23,6 +23,7 @@ paths:
     parameters:
       - in: path
         name: group_id
+        description: the COGroup ID of the group
         schema:
           type: string
         required: true
@@ -211,8 +212,8 @@ paths:
         required: true
     get:
       summary: List study authorizations
-      description: List study authorizations for a user
-      operationId: authz_operations.list_studies_for_user
+      description: List authorizations for a user
+      operationId: authz_operations.list_authz_for_user
       responses:
         200:
           description: Success
@@ -221,7 +222,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DACAuthorization'
+                  $ref: '#/components/schemas/UserAuthorization'
     post:
       summary: Add a study authorization for a user
       description: Authorize a study for a user (or update a study auth for a user)
@@ -234,7 +235,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DACAuthorization'
+                $ref: '#/components/schemas/UserAuthorization'
   /user/{user_id}/study/{study_id}:
     parameters:
       - in: path
@@ -407,3 +408,55 @@ components:
       required:
         - endpoint
         - method
+    UserAuthorization:
+      type: object
+      description: describes an authorized user and the programs the user is authorized to view
+      properties:
+        userinfo:
+          $ref: "#/components/schemas/UserInfo"
+        groups:
+          type: array
+          items:
+            type: string
+        study_authorizations:
+          type: object
+          properties:
+            team_member:
+              type: array
+              description: list of studies that the user is a team member of
+              items:
+                type: string
+            study_curator:
+              type: array
+              description: list of studies that the user is a curator of
+              items:
+                type: string
+            dac_authorizations:
+              type: array
+              description: list of studies that this user is authorized to view
+              items:
+                $ref: "#/components/schemas/DACAuthorization"
+    UserInfo:
+      type: object
+      description: describes an authenticated user
+      properties:
+        emails:
+          type: array
+          items:
+            $ref: "#/components/schemas/Email"
+          description: a list of verified emails associated with the user
+        pcgl_id:
+          type: string
+          description: user's pcgl ID
+      required:
+        - pcgl_id
+    Email:
+      type: object
+      description: email address and its properties
+      properties:
+        address:
+          type: string
+          description: email address
+        type:
+          type: string
+          description: enumerated type, as listed in https://spaces.at.internet2.edu/display/COmanage/Recommendations+For+Email+Addresses

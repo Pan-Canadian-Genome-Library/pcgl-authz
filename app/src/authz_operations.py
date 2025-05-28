@@ -47,9 +47,11 @@ def list_group(group_id):
     try:
         if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"authz/group/{group_id}"):
             groups, status_code = auth.get_comanage_groups()
+            if group_id in groups["ids"]:
+                group_id = groups["ids"][group_id]
             if status_code == 200:
                 result = []
-                for comanage_id in groups[group_id]:
+                for comanage_id in groups["index"][group_id]["members"]:
                     user, status_code = auth.get_user_by_comanage_id(comanage_id)
                     if status_code == 200:
                         if "pcglid" in user and user["pcglid"] not in result:
@@ -191,19 +193,28 @@ def remove_study_authorization(study_id):
 ####
 
 @app.route('/user/<path:pcgl_id>')
-def list_studies_for_user(pcgl_id):
-    try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{pcgl_id}"):
-            if pcgl_id == "me":
-                user_dict, status_code = auth.get_self(connexion.request)
-            else:
-                user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
-            if status_code == 200:
-                return list(user_dict["study_authorizations"].values()), status_code
-            return user_dict, status_code
-        return {"error": "User is not authorized to list studies"}, 403
-    except Exception as e:
-        return {"error": f"{type(e)} {str(e)}"}, 500
+def list_authz_for_user(pcgl_id):
+    if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{pcgl_id}"):
+        if pcgl_id == "me":
+            user_dict, status_code = auth.get_self(connexion.request)
+        else:
+            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
+        if status_code == 200:
+            result = {
+                "emails": user_dict["emails"],
+                "pcgl_id": user_dict["pcglid"],
+                "study_authorizations": user_dict["study_authorizations"]
+            }
+            if "groups" in user_dict:
+                result["groups"] = []
+                group_index, status_code = auth.get_service_store_secret("opa", key="groups")
+                if status_code == 200:
+                    for group in user_dict["groups"]:
+                        group_index["index"][str(group)].pop("members")
+                        result["groups"].append(group_index["index"][str(group)])
+            return result, status_code
+        return user_dict, status_code
+    return {"error": "User is not authorized to list studies"}, 403
 
 
 @app.route('/user/<path:pcgl_id>')

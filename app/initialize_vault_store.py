@@ -36,8 +36,8 @@ try:
 
     if status_code == 200:
         group_ids = response["ids"]
-        for group_id in group_ids:
-            for i in response[group_id]:
+        for group_id in response["index"].keys():
+            for i in response["index"][group_id]["members"]:
                 if i not in members_to_initialize:
                     members_to_initialize.append(i)
         response, status_code = set_service_store_secret("opa", key="groups", value=json.dumps(response))
@@ -63,7 +63,7 @@ try:
 
 
 except Exception as e:
-    print(str(e))
+    print(f"{type(e)}{str(e)}")
     sys.exit(4)
 
 sys.exit(0)
