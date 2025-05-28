@@ -4,11 +4,16 @@ CILogon provides federated identify management, supporting any institution in th
 
 During enrollment, users authenticate using a preferred identity. Users should be advised to choose their institutional identity if available (true for any Canadian academic institution that is a member of CAF, which is nearly all universities). It is possible to merge identities later, if a user registers more than once with different IDPs. 
 
-At the moment, all enrollment is either through invitation or by self-registration with approval. We will eventually want to allow self-enrollment without approval, but that's further down the line when we have a prod instance. 
+At the moment, all enrollment is either through invitation or by self-registration with approval. All flows require email verification, so we will always have a verified email address for a user.  
 
 ## PCGL user identifiers
 
-We are current creating both a `PCGL Number` (int) and a `PCGL ID` for each user (string, format `PCGL######` where ##### = PCGL Number) through `Configuration -> Identifier Assignments`. In the absence of the ID registry service, we will use this the PCGL ID to uniquely identify users (for example, in calls to the authorization API). This ensures that we always use the same ID, no matter what OIDC attributes are released by the IDP used to authenticate. 
+We currently create two PCGL identifers for each user through `Configuration -> Identifier Assignments`:
+
+* `PCGL Number` (int) 
+* `PCGL ID` (string, format `PCGL######` by concatenating 'PCGL' + `PCGL Number`)
+
+In the absence of the planned PCGL ID registry service, we will use this the PCGL ID to uniquely identify users (for example, in calls to the authorization API). This ensures that we always use the same ID for a user, no matter what OIDC attributes are released by the IDP used to authenticate. 
 
 ## Configuring enrollment flows 
 
