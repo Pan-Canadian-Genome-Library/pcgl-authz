@@ -2,11 +2,14 @@
 
 The authz API allows for the following types of actions and queries related to data authorization:
 
-* registering new studies
-* asking about authorization for a user-requested action
-* listing / editing authorization information for studies and users, including DACO approvals
+* registering new studies (and adding users authorized to edit data for studies)
+* asking about authorization for a user-requested actions
+* viewing user information
+* adding authorization information based on a DACO approval
 
 All authorization in the PCGL is at the level of whole studies. We do not currently implement authorization to only a subset of cases or to a subset of data types in a study. 
+
+Authorization stored as study attributes (via the `\study` endpoints) is meant for users who are submitting data for those studies. Specific approvals that stem from a DACO request process are stored as user attributes (via the `\user` endpoints).
 
 ## API spec
 
@@ -49,8 +52,10 @@ PCGL services should prioritize this endpoint for authorization decisions vs wri
 * consistent authorization decision-making across the platform
 * allows for changes to only happen in one place (e.g. creating a new user role), rather than changing logic in multiple components
 
-## Getting / setting auth info for studies and users
+## Viewing information about a user
 
+The `/user` endpoints allow you to set and get the specific authorization information for a study or user. 
 
+## Adding authorizing or a user following a DACO approval 
 
 
