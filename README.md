@@ -1,4 +1,4 @@
-An initial specification and implementation of an authorization service for the Pan-Canadian Genome Library.
+An initial specification and implementation of an authorization service for the Pan-Canadian Genome Library. This readme describes installation, see [docs](/docs/overview.md) for documentation on usage. 
 
 OpenAPI spec in [authz_openapi.yaml](https://github.com/CanDIG/pcgl-authz/blob/main/app/src/authz_openapi.yaml)
 
