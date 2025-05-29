@@ -203,10 +203,10 @@ paths:
                 type: array
                 items:
                   type: object
-  /user/{user_id}:
+  /user/{pcgl_id}:
     parameters:
       - in: path
-        name: user_id
+        name: pcgl_id
         schema:
           type: string
         required: true
@@ -444,7 +444,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Email"
-          description: a list of emails associated with the user
+          description: a list of verified emails associated with the user
         pcgl_id:
           type: string
           description: user's pcgl ID
@@ -453,3 +453,10 @@ components:
     Email:
       type: object
       description: email address and its properties
+      properties:
+        address:
+          type: string
+          description: email address
+        type:
+          type: string
+          description: enumerated type, as listed in https://spaces.at.internet2.edu/display/COmanage/Recommendations+For+Email+Addresses
