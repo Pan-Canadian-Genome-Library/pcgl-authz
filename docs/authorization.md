@@ -48,7 +48,7 @@ It is the responsibility of PCGL services to ensure that data is not released un
 
 The action must match one of the endpoint / method combinations provided during [service registraion](/docs/service-registration.md).
 
-The authx service returns `True` or `False` depending on whether the given user can perform the action on the study/studies. It also logs a decision log as an audit trail that details the logic of the decision. 
+The authx service returns `True` or `False` for each study in the list of studies, depending on whether the given user can perform the action on the study. It also logs a decision log as an audit trail that details the logic of the decision. 
 
 PCGL services should prioritize this endpoint for authorization decisions vs writing their own logic about data authorization given user and / or study information returned by the study and user endpoints. Why?
 
