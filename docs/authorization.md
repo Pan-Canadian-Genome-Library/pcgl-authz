@@ -9,7 +9,7 @@ The authz API allows for the following types of actions and queries related to d
 
 All authorization in the PCGL is at the level of whole studies. We do not currently implement authorization to only a subset of cases or to a subset of data types in a study. 
 
-Authorization stored as study attributes (via the `\study` endpoints) is meant for users who are submitting data for those studies. Specific approvals that stem from a DACO request process are stored as user attributes (via the `\user` endpoints).
+Authorization stored as study attributes (via the `\study` endpoints) is meant for users who are submitting data for those studies. Specific approvals for data use that stem from a DACO request process are stored as user attributes (via the `\user` endpoints).
 
 ## API spec
 
@@ -31,7 +31,7 @@ Once the PCGL internal identifer service is deployed, the study creation step wi
 
 ## Authorization queries
 
-It is the responsibility of PCGL services to ensure that data is not released unless the user is authorized. The authz `allowed` endpoint is the primary interface for asking if a user can perform a specified action on a study. When calling `allowed` a service provides the following information, along with user information in the Bearer token, where the action must match one of the endpoint / method combinations provided during [service registraion](/docs/service-registration.md):
+It is the responsibility of PCGL services to ensure that data is not released unless the user is authorized. The authz `allowed` endpoint is the primary interface for asking if a user can perform a specified action on a study. When calling `allowed` a service provides the following information, along with user information in the Bearer token:
 
 ```
 {
@@ -45,17 +45,36 @@ It is the responsibility of PCGL services to ensure that data is not released un
 }
 ```
 
+
+The action must match one of the endpoint / method combinations provided during [service registraion](/docs/service-registration.md).
+
 The authx service returns `True` or `False` depending on whether the given user can perform the action on the study/studies. It also logs a decision log as an audit trail that details the logic of the decision. 
 
 PCGL services should prioritize this endpoint for authorization decisions vs writing their own logic about data authorization given user and / or study information returned by the study and user endpoints. Why?
 
 * consistent authorization decision-making across the platform
-* allows for changes to only happen in one place (e.g. creating a new user role), rather than changing logic in multiple components
+* allows for changes to only happen in one place (e.g. creating a new user role), rather than changing logic in multiple services
 
-## Viewing information about a user
 
-The `/user` endpoints allow you to set and get the specific authorization information for a study or user. 
+## Adding study authorization for a user following a DACO approval 
 
-## Adding authorizing or a user following a DACO approval 
+When a user has been approved by the DACO for access to a study, a PCGL Admin (and eventually a DACO approver once that role is defined) can add authorization for that user by providing the following info via POST to the `\user\{pcgl_id}` endpoint. 
+
+```
+{
+  "study_id": "string",
+  "start_date": "string",
+  "end_date": "string"
+}
+```
+
+You can look up the pcgl_id in CILogon, or search for the user by email with the `\user\lookup` endpoint. 
+
+
+## Viewing authorization information
+
+The `\user\{pcgl_id}` and `\study\{study_id}` endpoints provide authorization information for users and studies, respectively. 
+
+A user can always view their own authorization information. Viewing information about another user requires a PCGL admin role, as does viewing information about study authorization. Note that there is an open request for a study admin role that can view / edit authorization information for a specific study. 
 
 

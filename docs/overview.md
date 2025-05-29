@@ -17,11 +17,12 @@ We are using a CILogon deployment that is part of The Alliance subscription - we
 External links
 * CILogon https://www.cilogon.org/ 
 * CILogon docs on registering an OIDC client https://www.cilogon.org/oidc 
+* COManage https://spaces.at.internet2.edu/display/COmanage/Home 
 * PCGL CILogon test instance https://registry-test.alliancecan.ca
 
 ## Authorization
 
-The general philosophy for PCGL authentication is that all logic for what users can access what data / services is centrally stored and managed through the pcgl-authz API. This ensures that authorization information is consistent throughout the platform and avoid scenarios where a authorization information has been updated in once service but not another. 
+The general philosophy for PCGL authentication is that all logic for what users can access what data / services is centrally stored and managed through the pcgl-authz API. This ensures that authorization information is consistent throughout the platform and avoid scenarios where a authorization information has been updated in one service but not another. 
 
 Services are expected to call the authz API to determine whether a user has the appropriate authorization before releasing / editing data. This is in contract to passing all user authorization in the JWT - we may include more in then token when we implement GA4GH Passports and Visas, but that is a year 2-3 initiative. 
 
