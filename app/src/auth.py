@@ -587,8 +587,8 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
     response = requests.get(f"{PCGL_API_URL}/registry/email_addresses.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
     if response.status_code == 200:
         for email in response.json()["EmailAddresses"]:
-            if email["Mail"] not in emails:
-                emails.append(email["Mail"])
+            if email["Mail"] not in emails and email["Verified"]:
+                emails.append({"address": email["Mail"], "type": email["Type"]})
     user["emails"] = emails
 
     # set up groups
@@ -621,6 +621,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
         user_index[pcglid] = str(comanage_id)
 
     for email in user["emails"]:
+        email = email["address"]
         if email not in user_index:
             user_index[email] = []
         if str(comanage_id) not in user_index[email]:
