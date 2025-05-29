@@ -75,6 +75,6 @@ You can look up the pcgl_id in CILogon, or search for the user by email with the
 
 The `/user/{pcgl_id}` and `/study/{study_id}` endpoints provide authorization information for users and studies, respectively. 
 
-A user can always view their own authorization information. Viewing information about another user requires a PCGL admin role, as does viewing information about study authorization. Note that there is an open request for a study admin role that can view / edit authorization information for a specific study. 
+A user can always view their own authorization information by accessing `/user/me`. Viewing information about another user requires a PCGL admin role, as does viewing information about study authorization. Note that there is an open request for a study admin role that can view / edit authorization information for a specific study. 
 
 
