@@ -4,7 +4,7 @@ In order to enable authorization decisions, PCGL services need to be registered 
 
 The `/service` endpoints can also be used to list all services and get a specific service. See the API spec for details. These endpoints are only available to users that is part of the PCGL Admin group in COManage. 
 
-See [service-verification](\docs\service-verification.md) for documentation on making and verifying service-to-service API calls. 
+See [service-verification](/docs\/ervice-verification.md) for documentation on making and verifying service-to-service API calls. 
 
 ## API spec
 

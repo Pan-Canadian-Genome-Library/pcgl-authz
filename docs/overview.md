@@ -10,7 +10,7 @@ All authentication of users in PCGL (except for participants in the participant 
 
 Each PCGL service should register as an OIDC client in CILogon. In the CILogon interface, this is under `Configuration -> OIDC Clients`. 
 
-All user enrollment is currently either via self-registration (requires approval) or by invitation. We can create multiple enrollment flows under `Configuration -> Enrollment Flows` for managing different kinds of users. See [enrollment](\docs\enrollment.md) for details. 
+All user enrollment is currently either via self-registration (requires approval) or by invitation. We can create multiple enrollment flows under `Configuration -> Enrollment Flows` for managing different kinds of users. See [enrollment](/docs/enrollment.md) for details. 
 
 We are using a CILogon deployment that is part of The Alliance subscription - we do not maintain this instance. We are currently only using the test instance - prod is available but not yet configured. Note that PCGL is only one of the Collaborative Organizations in this CILogon deployment. You may see `co:4` at the end of various URLs - we are org #4. 
 
@@ -28,7 +28,7 @@ Services are expected to call the authz API to determine whether a user has the 
 
 For specific tasks:
 
-* [service-registration](\docs\service-registration.md) for information on registering a PCGL service with the authorization service 
-* [authorization](\docs\authorization.md) for using the authorization API to register studies and verify authorization
-* [roles](\docs\roles.md) for management of roles and the currently implemented roles for PCGL
+* [service-registration](/docs/service-registration.md) for information on registering a PCGL service with the authorization service 
+* [authorization](/docs/authorization.md) for using the authorization API to register studies and verify authorization
+* [roles](/docs/roles.md) for management of roles and the currently implemented roles for PCGL
 * [service-verification][\docs\service-verification.md] for implementing service-to-service authorization
