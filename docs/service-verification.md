@@ -8,7 +8,7 @@ The calling service requests a service token with a POST to `/service/{service_i
 
 When making the request, the calling service includes this token as an `X-Service-Token` in the header. 
 
-These tokens have a long expiry (approx one month).
+These tokens currently expire after 30 minutes. We may revisit this timing. 
 
 ## Receiving service:
 

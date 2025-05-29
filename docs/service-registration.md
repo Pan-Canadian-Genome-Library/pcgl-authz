@@ -37,6 +37,6 @@ Information required for registering a service via a POST to the `/service` endp
 }
 ```
 
-In return, the service receives a UUID to use for [service-to-service verification](/docs/service-verification.md). The service is responsible for saving this UUID securely. This token is not needed to simple call the authz API. 
+In return, the service receives a UUID to use for [service-to-service verification](/docs/service-verification.md). The service is responsible for saving this UUID securely. This token is not needed to simple call the authz API (but that may change in a future update). 
 
 
