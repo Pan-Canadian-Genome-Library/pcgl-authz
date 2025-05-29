@@ -6,7 +6,7 @@ There are two different levels of roles in PCGL - site level roles and study lev
 
 ## Site roles
 
-Site roles are those that apply across all service. Current examples include PCGL Site Admins and DACO Reviewers. These roles are defined by group membership in COManage. We can eiter manually add users to groups, or have the group member attribute be part of the enrollment flow (see [enrollment](/docs/enrollment.md)).
+Site roles are those that apply across all service. Current examples include PCGL Administrator and DACO Reviewers. These roles are defined by group membership in COManage. We can eiter manually add users to groups, or have the group member attribute be part of the enrollment flow (see [enrollment](/docs/enrollment.md)).
 
 PCGL services can programmatically:
 
