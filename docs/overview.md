@@ -30,4 +30,5 @@ For specific tasks:
 
 * [service-registration](\docs\service-registration.md) for information on registering a PCGL service with the authorization service 
 * [authorization](\docs\authorization.md) for using the authorization API to register studies and verify authorization
+* [roles](\docs\roles.md) for management of roles and the currently implemented roles for PCGL
 * [service-verification][\docs\service-verification.md] for implementing service-to-service authorization
