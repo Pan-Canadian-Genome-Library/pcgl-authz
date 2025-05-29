@@ -24,7 +24,7 @@ External links
 
 The general philosophy for PCGL authentication is that all logic for what users can access what data / services is centrally stored and managed through the pcgl-authz API. This ensures that authorization information is consistent throughout the platform and avoid scenarios where a authorization information has been updated in one service but not another. 
 
-Services are expected to call the authz API to determine whether a user has the appropriate authorization before releasing / editing data. This is in contract to passing all user authorization in the JWT - we may include more in then token when we implement GA4GH Passports and Visas, but that is a year 2-3 initiative. 
+Services are expected to call the authz API to determine whether a user has the appropriate authorization before releasing / editing data. This is in contract to passing all user authorization in the JWT - we may include more in then token when we implement GA4GH Passports and Visas, but that is a future initiative. 
 
 For specific tasks:
 

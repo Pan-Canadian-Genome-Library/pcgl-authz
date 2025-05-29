@@ -16,7 +16,7 @@ View spec in swagger: https://editor.swagger.io/?url=https://raw.githubuserconte
 
 Information required for registering a service via a POST to the `/service` endpoint:
 
-* a unique service id (string)
+* a unique service id (string) - provided by the service
 * a description of the operations considered "read" and "write" for the service, provided as a list of endpoint + http method for each 
 
 ```
