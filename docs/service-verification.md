@@ -8,6 +8,8 @@ The calling service requests a service token with a POST to `/service/{service_i
 
 When making the request, the calling service includes this token as an `X-Service-Token` in the header. 
 
+These tokens have a long expiry (approx one month).
+
 ## Receiving service:
 
 When receiving a request where service-to-service flow has been implemented, the receiving service verifies the token using GET `/service/{service_id}/verify` where the service_id is that of the calling service and including the token as an `X-Service-Token` in the header. The auth service returns `true` or `false` depending if the token matches the stored token for that service_id. 
