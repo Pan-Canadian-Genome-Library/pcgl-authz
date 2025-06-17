@@ -465,3 +465,5 @@ components:
         type:
           type: string
           description: enumerated type, as listed in https://spaces.at.internet2.edu/display/COmanage/Recommendations+For+Email+Addresses
+security:
+  - bearerAuth: []
