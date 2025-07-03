@@ -96,9 +96,9 @@ cidr_block=$(docker network inspect --format "{{json .IPAM.Config}}" pcgl-authz_
 cidr_block=$(echo ${cidr_block} | tr -d '"')
 cidr_block="${cidr_block}/27"
 if [ $PCGL_DEBUG_MODE -eq 1 ]; then
-  echo "{}" > tmp/temp.json
+  echo "{\"token_period\": \"768h\"}" > lib/vault/tmp/temp.json
 else
-  echo "{\"bound_cidrs\": [\"${cidr_block}\"]}" > tmp/temp.json
+  echo "{\"bound_cidrs\": [\"${cidr_block}\"], \"token_period\": \"768h\"}" > lib/vault/tmp/temp.json
 fi
 curl --request POST --header "X-Vault-Token: ${key_root}" --data @tmp/temp.json $VAULT_SERVICE_PUBLIC_URL/v1/auth/token/roles/approle
 rm tmp/temp.json
