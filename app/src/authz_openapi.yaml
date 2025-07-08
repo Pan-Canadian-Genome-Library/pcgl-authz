@@ -417,7 +417,7 @@ components:
         groups:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/COManageGroup"
         study_authorizations:
           type: object
           properties:
@@ -460,3 +460,16 @@ components:
         type:
           type: string
           description: enumerated type, as listed in https://spaces.at.internet2.edu/display/COmanage/Recommendations+For+Email+Addresses
+    COManageGroup:
+      type: object
+      description: Information about the group from COManage
+      properties:
+        description:
+          type: string
+          description: group description
+        id:
+          type: integer
+          description: group COID
+        name:
+          type: string
+          description: group name
