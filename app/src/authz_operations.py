@@ -298,9 +298,9 @@ async def is_allowed():
         if "studies" in action_dict:
             result = []
             for study_id in action_dict["studies"]:
-                result.append(auth.is_action_allowed_for_study(connexion.request, method=action_dict["method"], path=action_dict["path"], study=study_id))
+                result.append(auth.is_action_allowed_for_study(connexion.request, method=action_dict["action"]["method"], path=action_dict["action"]["endpoint"], study=study_id))
             return result, 200
         else:
-            return auth.is_action_allowed_for_study(connexion.request, method=action_dict["method"], path=action_dict["path"]), 200
+            return auth.is_action_allowed_for_study(connexion.request, action_dict["action"]["method"], path=action_dict["action"]["endpoint"]), 200
     except Exception as e:
             return {"error": f"{type(e)} {str(e)}"}, 500
