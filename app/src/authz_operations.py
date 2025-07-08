@@ -132,11 +132,9 @@ async def create_service_token(service_id):
 @app.route('/service/<path:service_id>')
 def verify_service_token(service_id):
     try:
-        if auth.is_site_admin(connexion.request):
-            if "X-Service-Token" in connexion.request.headers:
-                return {"result": auth.verify_service_token(service_id, connexion.request.headers["X-Service-Token"])}
-            return {"error": "no X-Service-Token present"}, 500
-        return {"error": "User is not authorized to create verification tokens"}, 403
+        if "X-Service-Token" in connexion.request.headers:
+            return {"result": auth.verify_service_token(service_id, connexion.request.headers["X-Service-Token"])}
+        return {"error": "no X-Service-Token present"}, 500
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
