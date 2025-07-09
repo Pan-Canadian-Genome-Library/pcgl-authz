@@ -663,7 +663,7 @@ def get_comanage_groups():
             result.append(new_group)
         data = {"ids": {}, "index": {}}
         for group in result:
-            data["ids"][group["description"]] = str(group["id"])
+            data["ids"][group["name"]] = str(group["id"])
             data["index"][str(group["id"])] = group
             # special groups:
             if group["name"] == "CO:admins":
