@@ -294,6 +294,10 @@ components:
         'application/json':
           schema:
             $ref: "#/components/schemas/ServiceRegistration"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
     ServiceVerificationTokenRequest:
       content:
         'application/json':
@@ -460,3 +464,5 @@ components:
         type:
           type: string
           description: enumerated type, as listed in https://spaces.at.internet2.edu/display/COmanage/Recommendations+For+Email+Addresses
+security:
+  - bearerAuth: []
