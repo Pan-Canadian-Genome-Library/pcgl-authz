@@ -13,7 +13,6 @@ package calculate
 #     'study': name of study (optional)
 # }
 #
-import data.idp.user_key as user_key
 import data.vault.user_id as user_id
 
 user_pcglid := data.vault.user_pcglid
@@ -118,19 +117,19 @@ else := readable_studies if {
 
 # if user is a site curator, they can access all studies that allow edit access for this method, path
 else := all_studies if {
-	user_key in groups.curator
+	site_curator
 	input.body.method = "GET"
 	regex.match(paths.edit.get[_], input.body.path) == true
 }
 
 else := all_studies if {
-	user_key in groups.curator
+	site_curator
 	input.body.method = "POST"
 	regex.match(paths.edit.post[_], input.body.path) == true
 }
 
 else := all_studies if {
-	user_key in groups.curator
+	site_curator
 	input.body.method = "DELETE"
 	regex.match(paths.edit.delete[_], input.body.path) == true
 }
