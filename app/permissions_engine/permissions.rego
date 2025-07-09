@@ -97,8 +97,7 @@ else := false
 # User information, for decision log
 #
 
-# information from the jwt
-user_id := data.vault.user_id
+user_id := data.calculate.user_id
 user_pcglid := data.vault.user_pcglid
 
 user_key := data.idp.user_key
