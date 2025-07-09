@@ -100,8 +100,6 @@ else := false
 user_id := data.calculate.user_id
 user_pcglid := data.vault.user_pcglid
 
-user_key := data.idp.user_key
-
 #
 # Debugging information for decision log
 #
