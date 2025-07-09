@@ -22,7 +22,11 @@ study_auths[p] := study if {
 
 user_index := http.send({"method": "get", "url": "VAULT_URL/v1/opa/users/index", "headers": {"X-Vault-Token": vault_token}, "raise_error": false}).body.data
 
-user_id := user_index[data.idp.user_key]
+user_id := user_index[data.idp.user_key] if {
+	not input.body.user_pcglid
+}
+
+else := user_index[input.body.user_pcglid]
 
 # check to see if the user is authorized for any other studies via DACs
 user_auth := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/opa/users", user_id]), "headers": {"X-Vault-Token": vault_token}, "raise_error": false})

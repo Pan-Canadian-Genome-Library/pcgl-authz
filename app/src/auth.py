@@ -45,7 +45,7 @@ def get_auth_token(request, token=None):
 # General authorization methods
 ######
 
-def get_opa_permissions(bearer_token=None, user_token=None, method=None, path=None, study=None):
+def get_opa_permissions(bearer_token=None, user_token=None, user_pcglid=None, method=None, path=None, study=None):
     token = get_auth_token(None, token=bearer_token)
     if user_token is None:
         user_token = token
@@ -61,6 +61,8 @@ def get_opa_permissions(bearer_token=None, user_token=None, method=None, path=No
     }
     if study is not None:
         input["body"]["study"] = study
+    if user_pcglid is not None:
+        input["body"]["user_pcglid"] = user_pcglid
     response = requests.post(
         OPA_URL + "/v1/data/permissions",
         headers=headers,
