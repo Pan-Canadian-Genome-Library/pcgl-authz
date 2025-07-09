@@ -426,7 +426,7 @@ components:
               description: list of studies that the user can read
               items:
                 type: string
-            editable:
+            editable_studies:
               type: array
               description: list of studies that the user can edit
               items:
