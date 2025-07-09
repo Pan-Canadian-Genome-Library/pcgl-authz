@@ -97,7 +97,7 @@ else := false
 # User information, for decision log
 #
 
-user_id := data.calculate.user_id
+user_id := data.vault.user_id
 user_pcglid := data.vault.user_pcglid
 
 #
