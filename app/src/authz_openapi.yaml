@@ -421,19 +421,14 @@ components:
         study_authorizations:
           type: object
           properties:
-            team_member_studies:
+            readable_studies:
               type: array
-              description: list of studies that the user is a team member of
+              description: list of studies that the user can read
               items:
                 type: string
-            curator_studies:
+            editable:
               type: array
-              description: list of studies that the user is a curator of
-              items:
-                type: string
-            dac_studies:
-              type: array
-              description: list of studies that this user is authorized to view
+              description: list of studies that the user can edit
               items:
                 type: string
         dac_authorizations:

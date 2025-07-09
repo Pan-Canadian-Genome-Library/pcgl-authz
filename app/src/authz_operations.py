@@ -211,9 +211,8 @@ def list_authz_for_user(pcgl_id):
             token = auth.get_auth_token(connexion.request)
             permissions, status_code = auth.get_opa_permissions(bearer_token=token, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
             if status_code == 200:
-                result["study_authorizations"]["curator_studies"] = permissions["curator_studies"]
-                result["study_authorizations"]["team_member_studies"] = permissions["team_member_studies"]
-                result["study_authorizations"]["dac_studies"] = permissions["dac_studies"]
+                result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
+                result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
             if "groups" in user_dict:
                 result["groups"] = []
                 group_index, status_code = auth.get_service_store_secret("opa", key="groups")
