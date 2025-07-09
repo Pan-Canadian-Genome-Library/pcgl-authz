@@ -122,11 +122,8 @@ user_is_authorized if {
 
 else := false
 
-# studies the user is listed as a team member for
-team_member_studies := object.keys(data.calculate.team_readable_studies)
+# studies the user can read
+readable_studies := data.calculate.readable_studies
 
-# studies the user is approved by dac for
-dac_studies := object.keys(data.vault.user_studies)
-
-# studies the user is listed as a study curator for
-curator_studies := object.keys(data.calculate.editable_studies)
+# studies the user can edit
+editable_studies := data.calculate.editable_studies
