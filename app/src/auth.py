@@ -45,7 +45,7 @@ def get_auth_token(request, token=None):
 # General authorization methods
 ######
 
-def get_opa_permissions(bearer_token=None, user_token=None, method=None, path=None, study=None):
+def get_opa_permissions(bearer_token=None, user_token=None, user_pcglid=None, method=None, path=None, study=None):
     token = get_auth_token(None, token=bearer_token)
     if user_token is None:
         user_token = token
@@ -61,6 +61,8 @@ def get_opa_permissions(bearer_token=None, user_token=None, method=None, path=No
     }
     if study is not None:
         input["body"]["study"] = study
+    if user_pcglid is not None:
+        input["body"]["user_pcglid"] = user_pcglid
     response = requests.post(
         OPA_URL + "/v1/data/permissions",
         headers=headers,
@@ -661,16 +663,16 @@ def get_comanage_groups():
             result.append(new_group)
         data = {"ids": {}, "index": {}}
         for group in result:
-            data["ids"][group["description"]] = str(group["id"])
+            data["ids"][group["name"]] = str(group["id"])
             data["index"][str(group["id"])] = group
             # special groups:
-            if group["description"] == "PCGL Administrators":
+            if group["name"] == "CO:admins":
                 data["ids"]["admin"] = str(group["id"])
                 data["admin"] = group["members"]
-            elif group["description"] == "PCGL Approvers":
+            elif group["name"] == "PCGL:data_submitters":
                 data["ids"]["curator"] = str(group["id"])
                 data["curator"] = group["members"]
-            elif group["description"] == "PCGL Members":
+            elif group["name"] == "CO:members:all":
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]
         set_service_store_secret("opa", key="groups", value=json.dumps(data))

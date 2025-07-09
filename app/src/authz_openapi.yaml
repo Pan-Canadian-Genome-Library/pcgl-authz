@@ -211,8 +211,8 @@ paths:
           type: string
         required: true
     get:
-      summary: List study authorizations
-      description: List authorizations for a user
+      summary: List user authorizations
+      description: List authorizations for a user. If the pcgl_id is `me`, returns the information for the user associated with the bearer token.
       operationId: authz_operations.list_authz_for_user
       responses:
         200:
@@ -236,10 +236,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserAuthorization'
-  /user/{user_id}/study/{study_id}:
+  /user/{pcgl_id}/study/{study_id}:
     parameters:
       - in: path
-        name: user_id
+        name: pcgl_id
         schema:
           type: string
         required: true
@@ -417,25 +417,24 @@ components:
         groups:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/COManageGroup"
         study_authorizations:
           type: object
           properties:
-            team_member:
+            readable_studies:
               type: array
-              description: list of studies that the user is a team member of
+              description: list of studies that the user can read
               items:
                 type: string
-            study_curator:
+            editable_studies:
               type: array
-              description: list of studies that the user is a curator of
+              description: list of studies that the user can edit
               items:
                 type: string
-            dac_authorizations:
-              type: array
-              description: list of studies that this user is authorized to view
-              items:
-                $ref: "#/components/schemas/DACAuthorization"
+        dac_authorizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/DACAuthorization"
     UserInfo:
       type: object
       description: describes an authenticated user
@@ -460,3 +459,16 @@ components:
         type:
           type: string
           description: enumerated type, as listed in https://spaces.at.internet2.edu/display/COmanage/Recommendations+For+Email+Addresses
+    COManageGroup:
+      type: object
+      description: Information about the group from COManage
+      properties:
+        description:
+          type: string
+          description: group description
+        id:
+          type: integer
+          description: group COID
+        name:
+          type: string
+          description: group name

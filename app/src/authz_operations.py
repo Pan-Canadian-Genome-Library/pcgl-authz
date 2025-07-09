@@ -199,10 +199,21 @@ def list_authz_for_user(pcgl_id):
             user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
         if status_code == 200:
             result = {
-                "emails": user_dict["emails"],
-                "pcgl_id": user_dict["pcglid"],
-                "study_authorizations": user_dict["study_authorizations"]
+                "userinfo": {
+                    "emails": user_dict["emails"],
+                    "pcgl_id": user_dict["pcglid"]
+                },
+                "study_authorizations": {
+                },
+                "dac_authorizations": list(user_dict["study_authorizations"].values())
             }
+            token = auth.get_auth_token(connexion.request)
+            permissions, status_code = auth.get_opa_permissions(bearer_token=token, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
+            if status_code == 200:
+                result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
+                result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
+                result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
+                result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
             if "groups" in user_dict:
                 result["groups"] = []
                 group_index, status_code = auth.get_service_store_secret("opa", key="groups")
