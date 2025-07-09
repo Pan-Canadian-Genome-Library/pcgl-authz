@@ -666,13 +666,13 @@ def get_comanage_groups():
             data["ids"][group["description"]] = str(group["id"])
             data["index"][str(group["id"])] = group
             # special groups:
-            if group["description"] == "PCGL Administrators":
+            if group["name"] == "CO:admins":
                 data["ids"]["admin"] = str(group["id"])
                 data["admin"] = group["members"]
-            elif group["description"] == "PCGL Approvers":
+            elif group["name"] == "PCGL:data_submitters":
                 data["ids"]["curator"] = str(group["id"])
                 data["curator"] = group["members"]
-            elif group["description"] == "PCGL Members":
+            elif group["name"] == "CO:members:all":
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]
         set_service_store_secret("opa", key="groups", value=json.dumps(data))
