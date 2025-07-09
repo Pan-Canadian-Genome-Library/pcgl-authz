@@ -211,8 +211,8 @@ paths:
           type: string
         required: true
     get:
-      summary: List study authorizations
-      description: List authorizations for a user
+      summary: List user authorizations
+      description: List authorizations for a user. If the pcgl_id is `me`, returns the information for the user associated with the bearer token.
       operationId: authz_operations.list_authz_for_user
       responses:
         200:
@@ -421,21 +421,25 @@ components:
         study_authorizations:
           type: object
           properties:
-            team_member:
+            team_member_studies:
               type: array
               description: list of studies that the user is a team member of
               items:
                 type: string
-            study_curator:
+            curator_studies:
               type: array
               description: list of studies that the user is a curator of
               items:
                 type: string
-            dac_authorizations:
+            dac_studies:
               type: array
               description: list of studies that this user is authorized to view
               items:
-                $ref: "#/components/schemas/DACAuthorization"
+                type: string
+        dac_authorizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/DACAuthorization"
     UserInfo:
       type: object
       description: describes an authenticated user
