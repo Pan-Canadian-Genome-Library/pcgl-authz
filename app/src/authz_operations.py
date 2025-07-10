@@ -313,3 +313,30 @@ async def is_allowed():
             return auth.is_action_allowed_for_study(connexion.request, action_dict["action"]["method"], path=action_dict["action"]["endpoint"]), 200
     except Exception as e:
             return {"error": f"{type(e)} {str(e)}"}, 500
+
+
+async def reload_comanage():
+    if not auth.is_site_admin(connexion.request):
+        return {"error": "User is not authorized to reload COManage"}, 403
+
+    members_to_initialize = []
+    response, status_code = auth.get_comanage_groups()
+
+    if status_code == 200:
+        group_ids = response["ids"]
+        for group_id in response["index"].keys():
+            for i in response["index"][group_id]["members"]:
+                if i not in members_to_initialize:
+                    members_to_initialize.append(i)
+        response, status_code = auth.set_service_store_secret("opa", key="groups", value=json.dumps(response))
+    else:
+        return {"error": f"failed to save groups: {response}"}, status_code
+
+    # initialize new users:
+    try:
+        for member in members_to_initialize:
+            auth.get_user_record(member)
+    except Exception as e:
+        return {"error": f"failed to save users: {type(e)} {str(e)}"}, status_code
+
+    return {"message": "COManage groups and users reloaded"}, 200
