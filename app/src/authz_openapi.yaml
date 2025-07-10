@@ -286,6 +286,13 @@ paths:
                 type: array
                 items:
                   type: boolean
+  /reload:
+    post:
+      summary: Reload users and groups from COManage
+      operationId: authz_operations.reload_comanage
+      responses:
+        200:
+          description: Success
 
 components:
   requestBodies:
