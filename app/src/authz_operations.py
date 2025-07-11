@@ -198,6 +198,8 @@ def list_authz_for_user(pcgl_id):
         else:
             user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
         if status_code == 200:
+            # sync with COManage:
+            auth.get_user_record(comanage_id=user_dict["comanage_id"], force=True)
             result = {
                 "userinfo": {
                     "emails": user_dict["emails"],
