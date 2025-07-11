@@ -593,19 +593,9 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
                 emails.append({"address": email["Mail"], "type": email["Type"]})
     user["emails"] = emails
 
-    # set up groups
-    groups = []
-    response = requests.get(f"{PCGL_API_URL}/registry/co_group_members.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
-    if response.status_code == 200:
-        for group in response.json()["CoGroupMembers"]:
-            group_id = group["CoGroupId"]
-            if group_id not in groups:
-                groups.append(group_id)
-    user["groups"] = groups
-
-
     set_service_store_secret("opa", key=f"users/{comanage_id}", value=json.dumps(user))
     status_code = 201 # Created
+
     response = user
 
     # set entries in user index

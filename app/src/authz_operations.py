@@ -216,13 +216,14 @@ def list_authz_for_user(pcgl_id):
                 result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
                 result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
                 result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
-            if "groups" in user_dict:
-                result["groups"] = []
-                group_index, status_code = auth.get_service_store_secret("opa", key="groups")
-                if status_code == 200:
-                    for group in user_dict["groups"]:
-                        group_index["index"][str(group)].pop("members")
-                        result["groups"].append(group_index["index"][str(group)])
+            result["groups"] = []
+            groups, status_code = auth.get_service_store_secret("opa", key="groups")
+            if status_code == 200:
+                for group_id in groups["index"]:
+                    group = groups["index"][str(group_id)]
+                    members = group.pop("members")
+                    if user_dict["comanage_id"] in members:
+                        result["groups"].append(group)
             return result, status_code
         return user_dict, status_code
     return {"error": "User is not authorized to list studies"}, 403
