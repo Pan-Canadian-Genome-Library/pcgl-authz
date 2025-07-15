@@ -1,6 +1,6 @@
 import json
 import os
-from src.auth import get_service_store_secret, set_service_store_secret, get_comanage_groups, get_user_record, list_studies, add_study
+from src.auth import get_service_store_secret, set_service_store_secret, list_studies, add_study, reload_comanage
 import sys
 import requests
 
@@ -31,22 +31,8 @@ try:
         raise Exception("couldn't get openid configuration")
 
     # initialize groups from comanage
-    members_to_initialize = []
-    response, status_code = get_comanage_groups()
-
-    if status_code == 200:
-        group_ids = response["ids"]
-        for group_id in response["index"].keys():
-            for i in response["index"][group_id]["members"]:
-                if i not in members_to_initialize:
-                    members_to_initialize.append(i)
-        response, status_code = set_service_store_secret("opa", key="groups", value=json.dumps(response))
-    else:
-        raise Exception(f"failed to save groups: {response} {status_code}")
-
-    # initialize users:
-    for member in members_to_initialize:
-        print(get_user_record(member))
+    response, status_code = reload_comanage()
+    print(response)
 
     # initialize studies
     current_studies, status_code = list_studies()

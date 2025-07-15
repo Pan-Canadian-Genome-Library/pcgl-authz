@@ -669,3 +669,27 @@ def get_comanage_groups():
         return data, 200
 
     return response.text, response.status_code
+
+
+def reload_comanage():
+    cached_groups, status_code = get_service_store_secret("opa", key="groups")
+    if status_code != 200:
+        cached_groups = {"members": [], "ids": {}, "index": {}}
+
+    comanage_groups, status_code = get_comanage_groups()
+    if status_code == 200:
+        comanage_groups, status_code = set_service_store_secret("opa", key="groups", value=json.dumps(comanage_groups))
+    else:
+        return {"error": f"failed to save groups: {comanage_groups}"}, status_code
+    result = []
+    # initialize new users:
+    try:
+        members_to_initialize = []
+        for i in comanage_groups["members"]:
+            if i not in cached_groups["members"]:
+                members_to_initialize.append(i)
+        for member in members_to_initialize:
+            result.append(get_user_record(member))
+    except Exception as e:
+        return {"error": f"failed to save users: {type(e)} {str(e)}"}, status_code
+    return {"message": result}, 200
