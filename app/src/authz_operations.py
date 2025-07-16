@@ -1,5 +1,4 @@
 import connexion
-from flask import Flask
 import os
 import re
 import urllib.parse
@@ -10,7 +9,7 @@ import uuid
 import json
 
 
-app = Flask(__name__)
+app = connexion.AsyncApp(__name__)
 
 def get_headers():
     headers = {}
