@@ -576,7 +576,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
 
     # either force re-create user or
     # this is a new user: set up the user and the index entry
-    user = {"study_authorizations": {}}
+    user = {"study_authorizations": {}, "comanage_id": comanage_id}
 
     # set up identifiers
     response = requests.get(f"{PCGL_API_URL}/registry/identifiers.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
@@ -593,19 +593,9 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
                 emails.append({"address": email["Mail"], "type": email["Type"]})
     user["emails"] = emails
 
-    # set up groups
-    groups = []
-    response = requests.get(f"{PCGL_API_URL}/registry/co_group_members.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
-    if response.status_code == 200:
-        for group in response.json()["CoGroupMembers"]:
-            group_id = group["CoGroupId"]
-            if group_id not in groups:
-                groups.append(group_id)
-    user["groups"] = groups
-
-
     set_service_store_secret("opa", key=f"users/{comanage_id}", value=json.dumps(user))
     status_code = 201 # Created
+
     response = user
 
     # set entries in user index
@@ -679,3 +669,27 @@ def get_comanage_groups():
         return data, 200
 
     return response.text, response.status_code
+
+
+def reload_comanage():
+    cached_groups, status_code = get_service_store_secret("opa", key="groups")
+    if status_code != 200:
+        cached_groups = {"members": [], "ids": {}, "index": {}}
+
+    comanage_groups, status_code = get_comanage_groups()
+    if status_code == 200:
+        comanage_groups, status_code = set_service_store_secret("opa", key="groups", value=json.dumps(comanage_groups))
+    else:
+        return {"error": f"failed to save groups: {comanage_groups}"}, status_code
+    result = []
+    # initialize new users:
+    try:
+        members_to_initialize = []
+        for i in comanage_groups["members"]:
+            if i not in cached_groups["members"]:
+                members_to_initialize.append(i)
+        for member in members_to_initialize:
+            result.append(get_user_record(member))
+    except Exception as e:
+        return {"error": f"failed to save users: {type(e)} {str(e)}"}, status_code
+    return {"message": result}, 200

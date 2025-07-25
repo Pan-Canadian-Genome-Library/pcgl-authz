@@ -1,5 +1,4 @@
 import connexion
-from flask import Flask
 import os
 import re
 import urllib.parse
@@ -10,7 +9,7 @@ import uuid
 import json
 
 
-app = Flask(__name__)
+app = connexion.AsyncApp(__name__)
 
 def get_headers():
     headers = {}
@@ -46,7 +45,7 @@ def get_service_info():
 def list_group(group_id):
     try:
         if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"authz/group/{group_id}"):
-            groups, status_code = auth.get_comanage_groups()
+            groups, status_code = auth.get_service_store_secret("opa", key="groups")
             if group_id in groups["ids"]:
                 group_id = groups["ids"][group_id]
             if status_code == 200:
@@ -198,6 +197,8 @@ def list_authz_for_user(pcgl_id):
         else:
             user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
         if status_code == 200:
+            # sync with COManage:
+            auth.get_user_record(comanage_id=user_dict["comanage_id"], force=True)
             result = {
                 "userinfo": {
                     "emails": user_dict["emails"],
@@ -214,13 +215,14 @@ def list_authz_for_user(pcgl_id):
                 result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
                 result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
                 result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
-            if "groups" in user_dict:
-                result["groups"] = []
-                group_index, status_code = auth.get_service_store_secret("opa", key="groups")
-                if status_code == 200:
-                    for group in user_dict["groups"]:
-                        group_index["index"][str(group)].pop("members")
-                        result["groups"].append(group_index["index"][str(group)])
+            result["groups"] = []
+            groups, status_code = auth.get_service_store_secret("opa", key="groups")
+            if status_code == 200:
+                for group_id in groups["index"]:
+                    group = groups["index"][str(group_id)]
+                    members = group.pop("members")
+                    if user_dict["comanage_id"] in members:
+                        result["groups"].append(group)
             return result, status_code
         return user_dict, status_code
     return {"error": "User is not authorized to list studies"}, 403
@@ -313,3 +315,12 @@ async def is_allowed():
             return auth.is_action_allowed_for_study(connexion.request, action_dict["action"]["method"], path=action_dict["action"]["endpoint"]), 200
     except Exception as e:
             return {"error": f"{type(e)} {str(e)}"}, 500
+
+
+async def reload_comanage():
+    if not auth.is_site_admin(connexion.request):
+        return {"error": "User is not authorized to reload COManage"}, 403
+
+    result, status_code = auth.reload_comanage()
+    print(result)
+    return result, status_code
