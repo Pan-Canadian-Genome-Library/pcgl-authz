@@ -15,10 +15,11 @@ All user enrollment is currently either via self-registration (requires approval
 We are using a CILogon deployment that is part of The Alliance subscription - we do not maintain this instance. We are currently only using the test instance - prod is available but not yet configured. Note that PCGL is only one of the Collaborative Organizations in this CILogon deployment. You may see `co:4` at the end of various URLs - we are org #4. 
 
 External links
-* CILogon https://www.cilogon.org/ 
+* CILogon website https://www.cilogon.org/ 
 * CILogon docs on registering an OIDC client https://www.cilogon.org/oidc 
-* COManage https://spaces.at.internet2.edu/display/COmanage/Home 
+* COManage info https://spaces.at.internet2.edu/display/COmanage/Home 
 * PCGL CILogon test instance https://registry-test.alliancecan.ca
+* PCGL CILogon prod instance https://registry.alliancecan.ca/registry/ 
 
 ## Authorization
 
