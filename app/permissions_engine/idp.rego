@@ -9,7 +9,8 @@ user_info := output if {
 	output := http.send({"method": "get", "url": concat("", ["https://cilogon.org/oauth2/userinfo?access_token=", input[possible_tokens[_]]])}).body
 }
 
-user_key := user_info.sub
+user_sub := user_info.sub
+user_aud := user_info.aud
 
 default valid_token := false
-valid_token if user_key
+valid_token if user_sub

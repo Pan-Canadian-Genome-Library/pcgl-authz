@@ -22,7 +22,7 @@ study_auths[p] := study if {
 
 user_index := http.send({"method": "get", "url": "VAULT_URL/v1/opa/users/index", "headers": {"X-Vault-Token": vault_token}, "raise_error": false}).body.data
 
-user_id := user_index[data.idp.user_key] if {
+user_id := user_index[data.idp.user_sub] if {
 	not input.body.user_pcglid
 }
 

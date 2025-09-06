@@ -15,6 +15,8 @@ site_admin := data.calculate.site_admin if {
 	valid_token
 }
 
+else := false
+
 site_curator := data.calculate.site_curator if {
 	valid_token
 }
@@ -99,6 +101,8 @@ else := false
 
 user_id := data.vault.user_id
 user_pcglid := data.vault.user_pcglid
+user_aud := data.idp.user_aud
+user_sub := data.idp.user_sub
 
 #
 # Debugging information for decision log
