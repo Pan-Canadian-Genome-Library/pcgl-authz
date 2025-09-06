@@ -71,6 +71,8 @@ def list_services():
         if auth.is_site_admin(connexion.request):
             return auth.list_services()
         return {"error": "User is not authorized to list services"}, 403
+    except auth.AuthzError as e:
+        return {"error": str(e)}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -81,6 +83,8 @@ async def add_service():
         if auth.is_site_admin(connexion.request):
             return auth.add_service(service)
         return {"error": "User is not authorized to add services"}, 403
+    except auth.AuthzError as e:
+        return {"error": str(e)}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -97,6 +101,8 @@ def get_service(service_id):
             else:
                 return {"error": "No service found"}, 404
         return {"error": "User is not authorized to get services"}, 403
+    except auth.AuthzError as e:
+        return {"error": str(e)}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -107,6 +113,8 @@ def remove_service(service_id):
         if auth.is_site_admin(connexion.request):
             return auth.remove_service(service_id)
         return {"error": "User is not authorized to remove services"}, 403
+    except auth.AuthzError as e:
+        return {"error": str(e)}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -125,6 +133,8 @@ async def create_service_token(service_id):
                 return {"token": token}, 200
             return {"error": "Could not find service"}, 404
         return {"error": "User is not authorized to create verification tokens"}, 403
+    except auth.AuthzError as e:
+        return {"error": str(e)}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -318,9 +328,11 @@ async def is_allowed():
 
 
 async def reload_comanage():
-    if not auth.is_site_admin(connexion.request):
-        return {"error": "User is not authorized to reload COManage"}, 403
-
+    try:
+        if not auth.is_site_admin(connexion.request):
+            return {"error": "User is not authorized to reload COManage"}, 403
+    except auth.AuthzError as e:
+        return {"error": str(e)}, 403
     result, status_code = auth.reload_comanage()
     print(result)
     return result, status_code

@@ -130,6 +130,8 @@ def is_site_admin(request):
     if status_code == 200:
         if 'site_admin' in response:
             return response["site_admin"]
+    if status_code == 401:
+        raise AuthzError("User token is invalid")
     return False
 
 
@@ -645,7 +647,7 @@ def get_comanage_user(request, oidcsub=None):
         if response.status_code == 200:
             return response.json()[0], 200
         return response.text, response.status_code
-    return {"error": "could not find oidcsub"}, 500
+    return oidcsub, status_code
 
 
 def get_comanage_groups():
