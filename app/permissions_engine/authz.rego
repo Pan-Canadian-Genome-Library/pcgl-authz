@@ -23,7 +23,6 @@ allow if {
 # The authx library uses these paths:
 authx_paths := {
 	"permissions": ["v1", "data", "permissions"],
-	"user_id": ["v1", "data", "idp", "user_key"],
 }
 
 # An authorized user has a valid token (and passes in that same token for both bearer and body)
