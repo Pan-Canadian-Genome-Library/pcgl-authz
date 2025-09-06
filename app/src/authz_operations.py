@@ -208,13 +208,14 @@ def list_authz_for_user(pcgl_id):
             },
             "dac_authorizations": list(user_dict["study_authorizations"].values())
         }
-        token = auth.get_auth_token(connexion.request)
-        permissions, status_code = auth.get_opa_permissions(bearer_token=token, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
+        permissions, status_code = auth.get_opa_permissions(request=connexion.request, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
         if status_code == 200:
             result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
             result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
             result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
             result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
+        else:
+            return permissions, status_code
         result["groups"] = []
         groups, status_code = auth.get_service_store_secret("opa", key="groups")
         if status_code == 200:
