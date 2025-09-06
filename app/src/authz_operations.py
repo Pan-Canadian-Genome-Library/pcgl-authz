@@ -192,41 +192,39 @@ def remove_study_authorization(study_id):
 
 @app.route('/user/<path:pcgl_id>')
 def list_authz_for_user(pcgl_id):
-    if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{pcgl_id}"):
-        if pcgl_id == "me":
-            user_dict, status_code = auth.get_self(connexion.request)
-        else:
-            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
+    if pcgl_id == "me":
+        user_dict, status_code = auth.get_self(connexion.request)
+    else:
+        user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
+    if status_code == 200:
+        # sync with COManage:
+        auth.get_user_record(comanage_id=user_dict["comanage_id"], force=True)
+        result = {
+            "userinfo": {
+                "emails": user_dict["emails"],
+                "pcgl_id": user_dict["pcglid"]
+            },
+            "study_authorizations": {
+            },
+            "dac_authorizations": list(user_dict["study_authorizations"].values())
+        }
+        token = auth.get_auth_token(connexion.request)
+        permissions, status_code = auth.get_opa_permissions(bearer_token=token, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
         if status_code == 200:
-            # sync with COManage:
-            auth.get_user_record(comanage_id=user_dict["comanage_id"], force=True)
-            result = {
-                "userinfo": {
-                    "emails": user_dict["emails"],
-                    "pcgl_id": user_dict["pcglid"]
-                },
-                "study_authorizations": {
-                },
-                "dac_authorizations": list(user_dict["study_authorizations"].values())
-            }
-            token = auth.get_auth_token(connexion.request)
-            permissions, status_code = auth.get_opa_permissions(bearer_token=token, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
-            if status_code == 200:
-                result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
-                result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
-                result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
-                result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
-            result["groups"] = []
-            groups, status_code = auth.get_service_store_secret("opa", key="groups")
-            if status_code == 200:
-                for group_id in groups["index"]:
-                    group = groups["index"][str(group_id)]
-                    members = group.pop("members")
-                    if user_dict["comanage_id"] in members:
-                        result["groups"].append(group)
-            return result, status_code
-        return user_dict, status_code
-    return {"error": "User is not authorized to list studies"}, 403
+            result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
+            result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
+            result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
+            result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
+        result["groups"] = []
+        groups, status_code = auth.get_service_store_secret("opa", key="groups")
+        if status_code == 200:
+            for group_id in groups["index"]:
+                group = groups["index"][str(group_id)]
+                members = group.pop("members")
+                if user_dict["comanage_id"] in members:
+                    result["groups"].append(group)
+        return result, status_code
+    return user_dict, status_code
 
 
 @app.route('/user/<path:pcgl_id>')
