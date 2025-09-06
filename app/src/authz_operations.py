@@ -92,6 +92,7 @@ def get_service(service_id):
             service, status_code = auth.get_service(service_id)
             if status_code < 300:
                 service.pop("service_uuid")
+                service.pop("authorization")
                 return service, 200
             else:
                 return {"error": "No service found"}, 404
