@@ -127,7 +127,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ServiceRegistration'
+                type: object
+                properties:
+                  result:
+                    type: string
+                    description: service token
   /study:
     post:
       summary: Add authorization information for a study
@@ -345,6 +349,7 @@ components:
         - service_id
         - readable
         - editable
+        - authorization
       properties:
         service_id:
           type: string
@@ -359,6 +364,14 @@ components:
           description: Actions that allow a user to edit and delete data
           items:
             $ref: "#/components/schemas/Action"
+        authorization:
+          type: object
+          description: Information about the OIDC client associated with the service. This information is required to be submitted when registering a service, but will not be returned on GET requests for security reasons.
+          required:
+            - client_id
+          properties:
+            client_id:
+              type: string
     StudyAuthorization:
       type: object
       description: study and the researchers involved in this study
