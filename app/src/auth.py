@@ -534,7 +534,7 @@ def create_service_token(service_uuid):
     return str(token)
 
 
-def verify_service_token(service=None, token=None):
+def verify_service_token(service=None, token=None, service_uuid=None):
     """
     Verify that a token comes from a particular service. Should only be called from inside a container.
     """
@@ -542,24 +542,26 @@ def verify_service_token(service=None, token=None):
         return False
     if token is None:
         return False
-
-    service_dict, status_code = get_service(service)
-    if status_code == 200:
-        body = {
-            "input": {
-                "token": token,
-                "body": {
-                "service": service_dict["service_uuid"]
-                }
+    body = {
+        "input": {
+            "token": token,
+            "body": {
+                "service": service_uuid
             }
         }
+    }
 
-        response = requests.post(
-            OPA_URL + "/v1/data/service/verified",
-            json=body
-        )
-        return response.status_code == 200 and "result" in response.json() and response.json()["result"]
-    return {"error": f"Could not find service {service}"}, 404
+    if service_uuid is None:
+        service_dict, status_code = get_service(service)
+        if status_code == 200:
+            body["input"]["body"]["service"] = service_dict["service_uuid"]
+        else:
+            raise AuthzError(f"Could not find service {service}")
+    response = requests.post(
+        OPA_URL + "/v1/data/service/verified",
+        json=body
+    )
+    return response.status_code == 200 and "result" in response.json() and response.json()["result"]
 
 
 def get_user_record(comanage_id=None, oidcsub=None, force=False):
