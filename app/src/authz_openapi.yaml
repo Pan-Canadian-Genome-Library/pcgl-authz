@@ -227,6 +227,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UserAuthorization'
+        401:
+          description: User token is invalid
+        403:
+          description: Service token is invalid
     post:
       summary: Add a study authorization for a user
       description: Authorize a study for a user (or update a study auth for a user)
