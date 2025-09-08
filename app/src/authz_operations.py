@@ -124,15 +124,13 @@ async def create_service_token(service_id):
     service = await connexion.request.json()
     service_uuid = service["service_uuid"]
     try:
-        if auth.is_site_admin(connexion.request):
-            service_dict, status_code = auth.get_service(service_id)
-            if status_code == 200:
-                if service_dict["service_uuid"] != service_uuid:
-                    return {"error": f"Service UUID does not match service name"}
-                token = auth.create_service_token(service_uuid)
-                return {"token": token}, 200
-            return {"error": "Could not find service"}, 404
-        return {"error": "User is not authorized to create verification tokens"}, 403
+        service_dict, status_code = auth.get_service(service_id)
+        if status_code == 200:
+            if service_dict["service_uuid"] != service_uuid:
+                return {"error": f"Service UUID does not match service name"}
+            token = auth.create_service_token(service_uuid)
+            return {"token": token}, 200
+        return {"error": "Could not find service"}, 404
     except auth.AuthzError as e:
         return {"error": str(e)}, 403
     except Exception as e:
