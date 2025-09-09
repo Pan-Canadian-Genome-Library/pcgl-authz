@@ -6,6 +6,8 @@ info:
 servers:
   - url: http://localhost:1235/authz
   - url: /authz
+security:
+  - bearerAuth: []
 paths:
   /service-info:
     get:
@@ -303,6 +305,11 @@ paths:
           description: Success
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      x-bearerInfoFunc: authz_operations.handle_token
   requestBodies:
     ServiceRegistrationRequest:
       content:
