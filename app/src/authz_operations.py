@@ -143,8 +143,6 @@ async def create_service_token(service_id):
             token = auth.create_service_token(service_uuid)
             return {"token": token}, 200
         return {"error": "Could not find service"}, 404
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
     except auth.AuthzError as e:
         return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
@@ -157,8 +155,6 @@ def verify_service_token(service_id):
         if "X-Service-Token" in connexion.request.headers:
             return {"result": auth.verify_service_token(service_id, connexion.request.headers["X-Service-Token"])}
         return {"error": "no X-Service-Token present"}, 500
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
     except auth.AuthzError as e:
         return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
