@@ -135,6 +135,9 @@ paths:
                     type: string
                     description: service token
   /study:
+    parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
     post:
       summary: Add authorization information for a study
       description: Add authorization information for a study
@@ -163,6 +166,8 @@ paths:
                   $ref: '#/components/schemas/StudyAuthorization'
   /study/{study_id}:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: path
         name: study_id
         schema:
@@ -191,6 +196,8 @@ paths:
                 $ref: '#/components/schemas/StudyAuthorization'
   /user/lookup:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: query
         name: email
         schema:
@@ -211,6 +218,8 @@ paths:
                   type: object
   /user/{pcgl_id}:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: path
         name: pcgl_id
         schema:
@@ -248,6 +257,8 @@ paths:
                 $ref: '#/components/schemas/UserAuthorization'
   /user/{pcgl_id}/study/{study_id}:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: path
         name: pcgl_id
         schema:
@@ -281,6 +292,9 @@ paths:
               schema:
                 type: object
   /allowed:
+    parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
     post:
       summary: Is the authorized user allowed to perform the requested action?
       description: Returns whether a user is allowed to perform the requested action on the specified datasets
@@ -310,6 +324,21 @@ components:
       type: http
       scheme: bearer
       x-bearerInfoFunc: authz_operations.handle_token
+  parameters:
+    ServiceId:
+      in: header
+      name: X-Service-Id
+      required: true
+      schema:
+        type: string
+      description: ID of a registered service
+    ServiceToken:
+      in: header
+      name: X-Service-Token
+      required: true
+      schema:
+        type: string
+      description: service token created for the service specified by X-Service-Id
   requestBodies:
     ServiceRegistrationRequest:
       content:
