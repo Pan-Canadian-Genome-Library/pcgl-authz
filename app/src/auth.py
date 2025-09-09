@@ -24,6 +24,21 @@ PCGL_API_URL = os.getenv("PCGL_API_URL", "")
 class AuthzError(Exception):
     pass
 
+class ServiceHeadersError(AuthzError):
+    pass
+
+class NoServiceFoundError(AuthzError):
+    pass
+
+class ServiceTokenError(AuthzError):
+    pass
+
+class UserTokenError(AuthzError):
+    pass
+
+class UserServiceMismatchError(AuthzError):
+    pass
+
 
 def get_auth_token(request, token=None):
     """
@@ -67,7 +82,7 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
         json={"input": input}
         )
     if response.status_code == 401:
-        return {"error": "User token is not valid"}, 401
+        raise UserTokenError("User token is not valid")
 
     ### Authorization control: only registered users
     if response.status_code == 200:
@@ -85,18 +100,18 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
             if "X-Service-Token" not in request.headers:
                 raise AuthzError("no service token in headers")
         except AuthzError as e:
-            return {"error": f"Service headers incorrect: {str(e)}"}, 400
+            raise ServiceHeadersError(f"Service headers incorrect: {str(e)}")
 
         # check to see if this is from a registered service:
         service_dict, status_code = get_service(request.headers['X-Service-Id'])
         if status_code != 200:
-            return {"error": f"no service registered as {request.headers['X-Service-Id']}"}, 400
+            raise NoServiceFoundError(f"no service registered as {request.headers['X-Service-Id']}")
         if not verify_service_token(service=request.headers['X-Service-Id'], token=request.headers['X-Service-Token'], service_uuid=service_dict["service_uuid"]):
-            return {"error": "Service token is not valid"}, 403
+            raise ServiceTokenError("Service token is not valid")
         client_id = service_dict["authorization"]["client_id"]
         if "user_aud" in permissions and client_id == permissions["user_aud"]:
             return permissions, 200
-        return {"error": f"user token not issued by {request.headers['X-Service-Id']}"}, 403
+        raise UserServiceMismatchError(f"user token not issued by {request.headers['X-Service-Id']}")
 
     return response.text, response.status_code
 
