@@ -11,42 +11,6 @@ Before running the `run.sh` script, open the file `secrets.sh.example` and renam
 
 The `run.sh` script will use the environment variables listed in `secrets.sh` and launch three docker containers. The API server will be available at http://localhost:1235.
 
-## Overview
-The authorization service allows PCGL to separately manage OIDC tokens and clients for different services while still using CILogon/COManage to handle authentication and user roles and groups.
-
-The authorization service manages policy decisions about user access for registered services as well.
-
-PCGL services will register with the authorization service. Registration allows authz to:
-* designate actions allowed for users and user groups, based on study
-* designate an OIDC client that will be the issuer of its user tokens
-* allows the authz service to verify that any authz call is coming from a known registered service.
-
-## Registering a service
-
-To register a service, a site admin will need to send a POST to the `/authz/service` endpoint with a request body similar to:
-```
-{
-  "service_id": "fakeservice",
-  "authorization": {
-    "client_id": "cilogon:/client_id/11e718dfc4d68f1b34731d913294d26b"
-  },
-  "editable": [
-    {
-      "method": "POST",
-      "endpoint": "fake/submit/?.*"
-    }
-  ],
-  "readable": [
-    {
-      "method": "GET",
-      "endpoint": "fake/?.*"
-    }
-  ]
-}
-```
-This call needs to be sent with a bearer token from a site administrator.
-
-
 ## Calling the REST API
 
 The authz API is primarily meant to be called by registered services. While all calls require a bearer token that is associated with a user in CILogon, service calls additionally require `X-Service-Id` and `X-Service-Token` headers to determine which service's OIDC client is being used for the user token.

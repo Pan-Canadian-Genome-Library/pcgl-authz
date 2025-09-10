@@ -2,6 +2,13 @@
 
 Auth in PCGL uses CILogon for authentication, COManage for group management, and the pcgl-authz API for authorization (this API uses Open Policy Agent as the permissions engine and calls the COManage API for group information). In this documentation, we use CILogon and COManage interchangeably - they are separately software products on the back end, but from our perspective, it is all one UI.
 
+The authorization service allows PCGL to separately manage OIDC tokens and clients with different token lifetimes for different services.
+
+PCGL services need to register as OIDC clients with CILogon and register with the authorization service. Registration allows authz to:
+* designate actions allowed for users and user groups, based on study
+* designate an OIDC client that will be the issuer of its user tokens
+* allows the authz service to verify that any authz call is coming from a known registered service.
+
 
 ## Authentication
 
