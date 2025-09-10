@@ -1,10 +1,10 @@
-# Service registration 
+# Service registration
 
-In order to enable authorization decisions, PCGL services need to be registered with the authorization service. This registration defines the actions implemented by the service, and generates a UUID for enabling service-to-service authorization.   
+In order to enable authorization decisions, PCGL services need to be registered with the authorization service. This registration defines the actions implemented by the service, and generates a UUID for enabling service-to-service authorization.
 
-The `/service` endpoints can also be used to list all services and get a specific service. See the API spec for details. These endpoints are only available to users that is part of the PCGL Admin group in COManage. 
+The `/service` endpoints can also be used to list all services and get a specific service. See the API spec for details. These endpoints are only available to users that is part of the PCGL Admin group in COManage.
 
-See [service-verification](/docs\/ervice-verification.md) for documentation on making and verifying service-to-service API calls. 
+See [service-verification](/docs\/ervice-verification.md) for documentation on making and verifying service-to-service API calls.
 
 ## API spec
 
@@ -17,11 +17,15 @@ View spec in swagger: https://editor.swagger.io/?url=https://raw.githubuserconte
 Information required for registering a service via a POST to the `/service` endpoint:
 
 * a unique service id (string) - provided by the service
-* a description of the operations considered "read" and "write" for the service, provided as a list of endpoint + http method for each 
+* a description of the operations considered "read" and "write" for the service, provided as a list of endpoint + http method for each
+* the client ID for the OIDC client used by the service
 
 ```
 {
   "service_id": "string",
+  "authorization": {
+    "client_id": "string"
+  },
   "readable": [
     {
       "endpoint": "string",
@@ -37,6 +41,6 @@ Information required for registering a service via a POST to the `/service` endp
 }
 ```
 
-In return, the service receives a UUID to use for [service-to-service verification](/docs/service-verification.md). The service is responsible for saving this UUID securely. This token is not needed to simple call the authz API (but that may change in a future update). 
+In return, the service receives a UUID to use for [service-to-service verification](/docs/service-verification.md). The service is responsible for saving this UUID securely. For most API calls used by services, a service token will be required to securely identify the service; the UUID is needed to create this token.
 
 

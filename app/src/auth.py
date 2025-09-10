@@ -24,6 +24,21 @@ PCGL_API_URL = os.getenv("PCGL_API_URL", "")
 class AuthzError(Exception):
     pass
 
+class ServiceHeadersError(AuthzError):
+    pass
+
+class NoServiceFoundError(AuthzError):
+    pass
+
+class ServiceTokenError(AuthzError):
+    pass
+
+class UserTokenError(AuthzError):
+    pass
+
+class UserServiceMismatchError(AuthzError):
+    pass
+
 
 def get_auth_token(request, token=None):
     """
@@ -45,15 +60,13 @@ def get_auth_token(request, token=None):
 # General authorization methods
 ######
 
-def get_opa_permissions(bearer_token=None, user_token=None, user_pcglid=None, method=None, path=None, study=None):
-    token = get_auth_token(None, token=bearer_token)
-    if user_token is None:
-        user_token = token
+def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, study=None, assume_site_admin=False):
+    token = get_auth_token(request)
     headers = {
         "Authorization": f"Bearer {token}"
     }
     input = {
-        "token": user_token,
+        "token": token,
         "body": {
             "method": method,
             "path": path
@@ -68,25 +81,53 @@ def get_opa_permissions(bearer_token=None, user_token=None, user_pcglid=None, me
         headers=headers,
         json={"input": input}
         )
+    if response.status_code == 401:
+        raise UserTokenError("User token is not valid")
+
+    ### Authorization control: only registered users
     if response.status_code == 200:
-        return response.json()["result"], 200
+        permissions = response.json()["result"]
+
+        # if this request is to check for site admin, just return here
+        if assume_site_admin:
+            return permissions, 200
+
+        # check to see if the request has the needed headers:
+        try:
+            if "X-Service-Id" not in request.headers:
+                raise AuthzError("no service id in headers")
+
+            if "X-Service-Token" not in request.headers:
+                raise AuthzError("no service token in headers")
+        except AuthzError as e:
+            raise ServiceHeadersError(f"Service headers incorrect: {str(e)}")
+
+        # check to see if this is from a registered service:
+        service_dict, status_code = get_service(request.headers['X-Service-Id'])
+        if status_code != 200:
+            raise NoServiceFoundError(f"no service registered as {request.headers['X-Service-Id']}")
+        if not verify_service_token(service=request.headers['X-Service-Id'], token=request.headers['X-Service-Token'], service_uuid=service_dict["service_uuid"]):
+            raise ServiceTokenError("Service token is not valid")
+        client_id = service_dict["authorization"]["client_id"]
+        if "user_aud" in permissions and client_id == permissions["user_aud"]:
+            return permissions, 200
+        raise UserServiceMismatchError(f"user token not issued by {request.headers['X-Service-Id']}")
+
     return response.text, response.status_code
 
 
-def get_authorized_studies(request, token=None):
+def get_authorized_studies(request):
     """
     Get studies authorized for the user.
     Returns array of strings
     """
-
-    token = get_auth_token(request, token=token)
 
     if hasattr(request, 'path'):
         path = request.path
     elif hasattr(request, 'url'):
         path = request.url
 
-    response, status_code = get_opa_permissions(bearer_token=token, method=request.method, path=path)
+    response, status_code = get_opa_permissions(request=request, method=request.method, path=path, assume_site_admin=True)
     if status_code == 200:
         if "studies" in response:
             return response["studies"], 200
@@ -94,55 +135,40 @@ def get_authorized_studies(request, token=None):
     return [], status_code
 
 
-def is_site_admin(request, token=None):
+def is_site_admin(request):
     """
     Is the user associated with the token a site admin?
     Returns boolean.
     """
-    token = get_auth_token(request, token=token)
-
-    response, status_code = get_opa_permissions(bearer_token=token)
+    response, status_code = get_opa_permissions(request=request, assume_site_admin=True)
 
     if status_code == 200:
         if 'site_admin' in response:
             return response["site_admin"]
+    if status_code == 401:
+        raise AuthzError("User token is invalid")
     return False
 
 
-def is_action_allowed_for_study(request, token=None, method=None, path=None, study=None):
+def is_action_allowed_for_study(request, method=None, path=None, study=None):
     """
     Is the user allowed to perform this action on this study?
     """
-    token = get_auth_token(request, token=token)
-
-    response, status_code = get_opa_permissions(bearer_token=token, method=method, path=path, study=study)
+    response, status_code = get_opa_permissions(request=request, method=method, path=path, study=study, assume_site_admin=True)
     if status_code == 200:
         if 'allowed' in response:
             return response["allowed"]
     return False
 
 
-def get_oidcsub(request, token=None):
+def get_oidcsub(request):
     """
     Returns the OIDC sub (as defined in the sub claim of userinfo).
     """
-    token = get_auth_token(request, token=token)
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-    response = requests.post(
-        OPA_URL + f"/v1/data/idp/user_key",
-        headers=headers,
-        json={
-            "input": {
-                    "token": token
-                }
-            }
-        )
-    if response.status_code == 200:
-        if 'result' in response.json():
-            return response.json()['result']
-    return None
+    response, status_code = get_opa_permissions(request=request)
+    if status_code == 200:
+        return response['user_sub'], status_code
+    return response, status_code
 
 
 #####
@@ -172,8 +198,10 @@ def get_user_by_comanage_id(comanage_id):
     return get_service_store_secret("opa", key=f"users/{comanage_id}")
 
 
-def get_self(request, token=None):
-    oidcsub = get_oidcsub(request, token=token)
+def get_self(request):
+    oidcsub, status_code = get_oidcsub(request)
+    if status_code != 200:
+        return oidcsub, status_code
     user_index, status_code = get_service_store_secret("opa", key=f"users/index")
     if status_code == 200:
         if oidcsub in user_index:
@@ -523,7 +551,7 @@ def create_service_token(service_uuid):
     return str(token)
 
 
-def verify_service_token(service=None, token=None):
+def verify_service_token(service=None, token=None, service_uuid=None):
     """
     Verify that a token comes from a particular service. Should only be called from inside a container.
     """
@@ -531,24 +559,26 @@ def verify_service_token(service=None, token=None):
         return False
     if token is None:
         return False
-
-    service_dict, status_code = get_service(service)
-    if status_code == 200:
-        body = {
-            "input": {
-                "token": token,
-                "body": {
-                "service": service_dict["service_uuid"]
-                }
+    body = {
+        "input": {
+            "token": token,
+            "body": {
+                "service": service_uuid
             }
         }
+    }
 
-        response = requests.post(
-            OPA_URL + "/v1/data/service/verified",
-            json=body
-        )
-        return response.status_code == 200 and "result" in response.json() and response.json()["result"]
-    return {"error": f"Could not find service {service}"}, 404
+    if service_uuid is None:
+        service_dict, status_code = get_service(service)
+        if status_code == 200:
+            body["input"]["body"]["service"] = service_dict["service_uuid"]
+        else:
+            raise AuthzError(f"Could not find service {service}")
+    response = requests.post(
+        OPA_URL + "/v1/data/service/verified",
+        json=body
+    )
+    return response.status_code == 200 and "result" in response.json() and response.json()["result"]
 
 
 def get_user_record(comanage_id=None, oidcsub=None, force=False):
@@ -624,15 +654,15 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
     return response, status_code
 
 
-def get_comanage_user(request, token=None, oidcsub=None):
+def get_comanage_user(request, oidcsub=None):
     if oidcsub is None:
-        oidcsub = get_oidcsub(request, token=token)
-    if oidcsub is not None:
+        oidcsub, status_code = get_oidcsub(request)
+    if status_code == 200:
         response = requests.get(f"{PCGL_API_URL}/api/co/{PCGL_COID}/core/v1/people", params={"identifier": oidcsub}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
         if response.status_code == 200:
             return response.json()[0], 200
         return response.text, response.status_code
-    return {"error": "could not find oidcsub"}, 500
+    return oidcsub, status_code
 
 
 def get_comanage_groups():

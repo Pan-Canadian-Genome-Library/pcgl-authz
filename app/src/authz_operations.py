@@ -7,6 +7,7 @@ import auth
 import config
 import uuid
 import json
+import requests
 
 
 app = connexion.AsyncApp(__name__)
@@ -22,6 +23,12 @@ def get_headers():
     headers["Content-Type"] = "application/json"
     return headers
 
+
+def handle_token(token):
+    response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": token}, allow_redirects=False)
+    if response.status_code == 200:
+        return response.json()
+    raise connexion.exceptions.Unauthorized(response.text)
 
 # API endpoints
 def get_service_info():
@@ -58,6 +65,10 @@ def list_group(group_id):
                 return result, 200
             return groups, status_code
         return {"error": "User is not authorized to list groups"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -71,6 +82,10 @@ def list_services():
         if auth.is_site_admin(connexion.request):
             return auth.list_services()
         return {"error": "User is not authorized to list services"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -81,6 +96,10 @@ async def add_service():
         if auth.is_site_admin(connexion.request):
             return auth.add_service(service)
         return {"error": "User is not authorized to add services"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -92,10 +111,15 @@ def get_service(service_id):
             service, status_code = auth.get_service(service_id)
             if status_code < 300:
                 service.pop("service_uuid")
+                service.pop("authorization")
                 return service, 200
             else:
                 return {"error": "No service found"}, 404
         return {"error": "User is not authorized to get services"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -106,6 +130,10 @@ def remove_service(service_id):
         if auth.is_site_admin(connexion.request):
             return auth.remove_service(service_id)
         return {"error": "User is not authorized to remove services"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -115,15 +143,15 @@ async def create_service_token(service_id):
     service = await connexion.request.json()
     service_uuid = service["service_uuid"]
     try:
-        if auth.is_site_admin(connexion.request):
-            service_dict, status_code = auth.get_service(service_id)
-            if status_code == 200:
-                if service_dict["service_uuid"] != service_uuid:
-                    return {"error": f"Service UUID does not match service name"}
-                token = auth.create_service_token(service_uuid)
-                return {"token": token}, 200
-            return {"error": "Could not find service"}, 404
-        return {"error": "User is not authorized to create verification tokens"}, 403
+        service_dict, status_code = auth.get_service(service_id)
+        if status_code == 200:
+            if service_dict["service_uuid"] != service_uuid:
+                return {"error": f"Service UUID does not match service name"}
+            token = auth.create_service_token(service_uuid)
+            return {"token": token}, 200
+        return {"error": "Could not find service"}, 404
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -134,6 +162,8 @@ def verify_service_token(service_id):
         if "X-Service-Token" in connexion.request.headers:
             return {"result": auth.verify_service_token(service_id, connexion.request.headers["X-Service-Token"])}
         return {"error": "no X-Service-Token present"}, 500
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -148,6 +178,10 @@ def list_study_authorizations():
             response, status_code = auth.list_studies()
             return response, status_code
         return {"error": "User is not authorized to list studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -159,6 +193,10 @@ async def add_study_authorization():
             response, status_code = auth.add_study(study)
             return response, status_code
         return {"error": "User is not authorized to add studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -170,6 +208,10 @@ def get_study_authorization(study_id):
             response, status_code = auth.get_study(study_id)
             return response, status_code
         return {"error": "User is not authorized to get studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -181,6 +223,10 @@ def remove_study_authorization(study_id):
             response, status_code = auth.remove_study(study_id)
             return response, 200
         return {"error": "User is not authorized to remove studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -191,7 +237,7 @@ def remove_study_authorization(study_id):
 
 @app.route('/user/<path:pcgl_id>')
 def list_authz_for_user(pcgl_id):
-    if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{pcgl_id}"):
+    try:
         if pcgl_id == "me":
             user_dict, status_code = auth.get_self(connexion.request)
         else:
@@ -208,13 +254,14 @@ def list_authz_for_user(pcgl_id):
                 },
                 "dac_authorizations": list(user_dict["study_authorizations"].values())
             }
-            token = auth.get_auth_token(connexion.request)
-            permissions, status_code = auth.get_opa_permissions(bearer_token=token, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
+            permissions, status_code = auth.get_opa_permissions(request=connexion.request, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
             if status_code == 200:
                 result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
                 result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
                 result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
                 result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
+            else:
+                return permissions, status_code
             result["groups"] = []
             groups, status_code = auth.get_service_store_secret("opa", key="groups")
             if status_code == 200:
@@ -224,8 +271,11 @@ def list_authz_for_user(pcgl_id):
                     if user_dict["comanage_id"] in members:
                         result["groups"].append(group)
             return result, status_code
-        return user_dict, status_code
-    return {"error": "User is not authorized to list studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
+    return user_dict, status_code
 
 
 @app.route('/user/<path:pcgl_id>')
@@ -249,6 +299,10 @@ async def authorize_study_for_user(pcgl_id):
                 return response, status_code
             return user_dict, status_code
         return {"error": "User is not authorized to authorize studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -265,6 +319,10 @@ def get_study_for_user(pcgl_id, study_id):
                     return user_dict["study_authorizations"][p], 200
             return {"error": f"No study {study_id} found for user"}, status_code
         return {"error": "User is not authorized to get studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -283,6 +341,10 @@ def remove_study_for_user(pcgl_id, study_id):
                     return list(response["study_authorizations"].values()), status_code
             return {"error": f"No study {study_id} found for user"}, status_code
         return {"error": "User is not authorized to delete studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -299,6 +361,10 @@ def lookup_user(email=None):
                         result.append(user["pcglid"])
             return result, status_code
         return {"error": "User is not authorized to look up users"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
@@ -313,14 +379,24 @@ async def is_allowed():
             return result, 200
         else:
             return auth.is_action_allowed_for_study(connexion.request, action_dict["action"]["method"], path=action_dict["action"]["endpoint"]), 200
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
-            return {"error": f"{type(e)} {str(e)}"}, 500
+        return {"error": f"{type(e)} {str(e)}"}, 500
 
 
 async def reload_comanage():
-    if not auth.is_site_admin(connexion.request):
-        return {"error": "User is not authorized to reload COManage"}, 403
-
+    try:
+        if not auth.is_site_admin(connexion.request):
+            return {"error": "User is not authorized to reload COManage"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
+    except Exception as e:
+        return {"error": f"{type(e)} {str(e)}"}, 500
     result, status_code = auth.reload_comanage()
     print(result)
     return result, status_code

@@ -6,6 +6,8 @@ info:
 servers:
   - url: http://localhost:1235/authz
   - url: /authz
+security:
+  - bearerAuth: []
 paths:
   /service-info:
     get:
@@ -127,8 +129,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ServiceRegistration'
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: service token
   /study:
+    parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
     post:
       summary: Add authorization information for a study
       description: Add authorization information for a study
@@ -157,6 +166,8 @@ paths:
                   $ref: '#/components/schemas/StudyAuthorization'
   /study/{study_id}:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: path
         name: study_id
         schema:
@@ -185,6 +196,8 @@ paths:
                 $ref: '#/components/schemas/StudyAuthorization'
   /user/lookup:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: query
         name: email
         schema:
@@ -205,6 +218,8 @@ paths:
                   type: object
   /user/{pcgl_id}:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: path
         name: pcgl_id
         schema:
@@ -223,6 +238,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UserAuthorization'
+        401:
+          description: User token is invalid
+        403:
+          description: Service token is invalid
     post:
       summary: Add a study authorization for a user
       description: Authorize a study for a user (or update a study auth for a user)
@@ -238,6 +257,8 @@ paths:
                 $ref: '#/components/schemas/UserAuthorization'
   /user/{pcgl_id}/study/{study_id}:
     parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
       - in: path
         name: pcgl_id
         schema:
@@ -271,6 +292,9 @@ paths:
               schema:
                 type: object
   /allowed:
+    parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
     post:
       summary: Is the authorized user allowed to perform the requested action?
       description: Returns whether a user is allowed to perform the requested action on the specified datasets
@@ -295,6 +319,26 @@ paths:
           description: Success
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      x-bearerInfoFunc: authz_operations.handle_token
+  parameters:
+    ServiceId:
+      in: header
+      name: X-Service-Id
+      required: true
+      schema:
+        type: string
+      description: ID of a registered service
+    ServiceToken:
+      in: header
+      name: X-Service-Token
+      required: true
+      schema:
+        type: string
+      description: service token created for the service specified by X-Service-Id
   requestBodies:
     ServiceRegistrationRequest:
       content:
@@ -345,6 +389,7 @@ components:
         - service_id
         - readable
         - editable
+        - authorization
       properties:
         service_id:
           type: string
@@ -359,6 +404,14 @@ components:
           description: Actions that allow a user to edit and delete data
           items:
             $ref: "#/components/schemas/Action"
+        authorization:
+          type: object
+          description: Information about the OIDC client associated with the service. This information is required to be submitted when registering a service, but will not be returned on GET requests for security reasons.
+          required:
+            - client_id
+          properties:
+            client_id:
+              type: string
     StudyAuthorization:
       type: object
       description: study and the researchers involved in this study
