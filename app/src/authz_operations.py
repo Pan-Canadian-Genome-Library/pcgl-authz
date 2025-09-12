@@ -80,7 +80,14 @@ def list_group(group_id):
 def list_services():
     try:
         if auth.is_site_admin(connexion.request):
-            return auth.list_services()
+            services, status_code = auth.list_services()
+            if status_code == 200:
+                for service in services:
+                    if "service_uuid" in service:
+                        service.pop("service_uuid")
+                    if "authorization" in service:
+                        service.pop("authorization")
+            return services, status_code
         return {"error": "User is not authorized to list services"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
