@@ -5,5 +5,6 @@ source secrets.sh
 bash vault_preflight.sh
 docker compose build $@
 docker compose --compatibility up --detach
+mv tmp/vault/backup.tar.gz tmp/vault/restore.tar.gz
 bash vault_setup.sh
 bash opa_setup.sh

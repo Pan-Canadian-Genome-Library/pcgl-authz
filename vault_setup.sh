@@ -12,6 +12,22 @@ vault=$(docker ps -a --format "{{.Names}}" | grep pcgl-authz_vault_1 | awk '{pri
 flask=$(docker ps -a --format "{{.Names}}" | grep pcgl-authz_flask_1 | awk '{print $1}')
 docker cp app/vault-config.json $vault:/vault/config/
 
+# check to see if we need to restore a backup before initializing a fresh Vault:
+if [[ -f "tmp/vault/restore.tar.gz" ]]; then
+  echo ">> restoring vault from backup"
+  docker stop $vault
+  pwd=$(pwd)
+  cd tmp/vault
+  tar -xzf $pwd/tmp/vault/restore.tar.gz
+  cd $pwd
+  cp tmp/vault/backup/keys.txt tmp/vault/
+  docker cp tmp/vault/backup/keys.txt $flask:/vault/config/
+  docker cp tmp/vault/backup/backup.tar.gz $flask:/vault/
+  docker exec -u root $flask bash -c "cd /vault; tar -xzf backup.tar.gz"
+  rm -R tmp/vault/backup
+  mv tmp/vault/restore.tar.gz tmp/vault/restored.tar.gz
+fi
+
 # if vault isn't started, start it:
 docker restart $vault
 
