@@ -1,27 +1,13 @@
 import connexion
 import os
-import re
 import urllib.parse
-
 import auth
 import config
-import uuid
 import json
 import requests
 
 
 app = connexion.AsyncApp(__name__)
-
-def get_headers():
-    headers = {}
-    if "Authorization" not in connexion.request.headers:
-        return {"error": "Bearer token required"}, 403
-    if not connexion.request.headers["Authorization"].startswith("Bearer "):
-        return {"error": "Invalid bearer token"}, 403
-    token = connexion.request.headers["Authorization"].split("Bearer ")[1]
-    headers["Authorization"] = "Bearer %s" % token
-    headers["Content-Type"] = "application/json"
-    return headers
 
 
 def handle_token(token):
@@ -29,6 +15,7 @@ def handle_token(token):
     if response.status_code == 200:
         return response.json()
     raise connexion.exceptions.Unauthorized(response.text)
+
 
 # API endpoints
 def get_service_info():

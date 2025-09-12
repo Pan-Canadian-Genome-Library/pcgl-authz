@@ -1,11 +1,7 @@
 import os
-import re
 import requests
-import base64
 import json
 import uuid
-import getpass
-import urllib
 
 
 ## Env vars for most auth methods:
