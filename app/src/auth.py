@@ -321,7 +321,6 @@ def list_services():
         for service_id in services:
             response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
             if status_code == 200:
-                response.pop("service_uuid")
                 result.append(response)
     return result, 200
 
