@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import uuid
+from connexion.context import context
 
 
 ## Env vars for most auth methods:
@@ -157,16 +158,6 @@ def is_action_allowed_for_study(request, method=None, path=None, study=None):
     return False
 
 
-def get_oidcsub(request):
-    """
-    Returns the OIDC sub (as defined in the sub claim of userinfo).
-    """
-    response, status_code = get_opa_permissions(request=request)
-    if status_code == 200:
-        return response['user_sub'], status_code
-    return response, status_code
-
-
 #####
 # Users
 #####
@@ -194,10 +185,8 @@ def get_user_by_comanage_id(comanage_id):
     return get_service_store_secret("opa", key=f"users/{comanage_id}")
 
 
-def get_self(request):
-    oidcsub, status_code = get_oidcsub(request)
-    if status_code != 200:
-        return oidcsub, status_code
+def get_self():
+    oidcsub = context["user"]
     user_index, status_code = get_service_store_secret("opa", key=f"users/index")
     if status_code == 200:
         if oidcsub in user_index:
@@ -584,7 +573,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
         if oidcsub in user_index:
             comanage_id = user_index[oidcsub]
         else:
-            lookup_user, status_code = get_comanage_user(None, oidcsub=oidcsub)
+            lookup_user, status_code = get_comanage_user(oidcsub=oidcsub)
             if status_code == 200:
                 comanage_id = lookup_user["CoPerson"]["meta"]["id"]
             else:
@@ -644,15 +633,12 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
     return response, status_code
 
 
-def get_comanage_user(request, oidcsub=None):
-    if oidcsub is None:
-        oidcsub, status_code = get_oidcsub(request)
-    if status_code == 200:
-        response = requests.get(f"{PCGL_API_URL}/api/co/{PCGL_COID}/core/v1/people", params={"identifier": oidcsub}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
-        if response.status_code == 200:
-            return response.json()[0], 200
-        return response.text, response.status_code
-    return oidcsub, status_code
+def get_comanage_user(oidcsub=None):
+    oidcsub = context["user"]
+    response = requests.get(f"{PCGL_API_URL}/api/co/{PCGL_COID}/core/v1/people", params={"identifier": oidcsub}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
+    if response.status_code == 200:
+        return response.json()[0], 200
+    return response.text, response.status_code
 
 
 def get_comanage_groups():
