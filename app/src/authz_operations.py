@@ -233,7 +233,7 @@ def remove_study_authorization(study_id):
 def list_authz_for_user(pcgl_id):
     try:
         if pcgl_id == "me":
-            user_dict, status_code = auth.get_self(connexion.request)
+            user_dict, status_code = auth.get_self()
         else:
             user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
         if status_code == 200:
