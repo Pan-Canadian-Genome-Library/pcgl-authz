@@ -191,6 +191,8 @@ def get_self():
     if status_code == 200:
         if oidcsub in user_index:
             return get_service_store_secret("opa", key=f"users/{user_index[oidcsub]}")
+        # try to see if we can create this record:
+        get_user_record(oidcsub=oidcsub, force=True)
     return {"error": f"could not find user {oidcsub}"}, 404
 
 
