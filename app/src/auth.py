@@ -670,7 +670,7 @@ def get_comanage_groups():
             elif group["name"] == "PCGL:data_submitters":
                 data["ids"]["curator"] = str(group["id"])
                 data["curator"] = group["members"]
-            elif group["name"] == "CO:members:all":
+            elif group["name"] == "CO:members:active":
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]
         set_service_store_secret("opa", key="groups", value=json.dumps(data))
