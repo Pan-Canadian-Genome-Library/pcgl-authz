@@ -583,7 +583,8 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
 
     response, status_code = get_service_store_secret("opa", key=f"users/{comanage_id}")
     if status_code == 200 and not force:
-        return response, status_code
+        if "pcglid" in response:
+            return response, status_code
 
     # either force re-create user or
     # this is a new user: set up the user and the index entry
