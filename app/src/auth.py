@@ -635,9 +635,9 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
 
 def get_comanage_user(oidcsub=None):
     oidcsub = context["user"]
-    response = requests.get(f"{PCGL_API_URL}/api/co/{PCGL_COID}/core/v1/people", params={"identifier": oidcsub}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
+    response = requests.get(f"{PCGL_API_URL}/registry/api/co/{PCGL_COID}/core/v1/people", params={"identifier": oidcsub}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
     if response.status_code == 200:
-        return response.json()[0], 200
+        return response.json()["0"], 200
     return response.text, response.status_code
 
 
