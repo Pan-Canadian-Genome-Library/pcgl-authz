@@ -693,11 +693,7 @@ def reload_comanage():
     result = []
     # initialize new users:
     try:
-        members_to_initialize = []
-        for i in comanage_groups["members"]:
-            if i not in cached_groups["members"]:
-                members_to_initialize.append(i)
-        for member in members_to_initialize:
+        for member in reversed(comanage_groups["members"]):
             result.append(get_user_record(member))
     except Exception as e:
         return {"error": f"failed to save users: {type(e)} {str(e)}"}, status_code
