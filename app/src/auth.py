@@ -668,7 +668,7 @@ def get_comanage_groups():
             if group["name"] == "CO:admins":
                 data["ids"]["admin"] = str(group["id"])
                 data["admin"] = group["members"]
-            elif group["name"] == "PCGL:data_submitters":
+            elif group["name"] == "PCGL:site_curators":
                 data["ids"]["curator"] = str(group["id"])
                 data["curator"] = group["members"]
             elif group["name"] == "CO:members:active":
