@@ -42,23 +42,26 @@ class UserServiceMismatchError(AuthzError):
 
 
 def handle_token(token, request=None):
-    if "X-Service-Id" not in request.headers:
-        response = exchange_refresh_token(token)
-    else:
-        service_dict, status_code = get_service(request.headers["X-Service-Id"])
-        if status_code != 200:
-            raise connexion.exceptions.Forbidden(service_dict["message"])
-        client_id = service_dict["authorization"]["client_id"]
-        client_secret = service_dict["authorization"]["client_secret"]
-        response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
+    try:
+        if "X-Service-Id" not in request.headers:
+            response = exchange_refresh_token(token)
+        else:
+            service_dict, status_code = get_service(request.headers["X-Service-Id"])
+            if status_code != 200:
+                raise connexion.exceptions.Forbidden(service_dict["message"])
+            client_id = service_dict["authorization"]["client_id"]
+            client_secret = service_dict["authorization"]["client_secret"]
+            response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
+        access_token = response["access_token"]
 
-    access_token = response["access_token"]
+        response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
 
-    response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
-
-    if response.status_code == 200:
-        return response.json()
-    raise connexion.exceptions.Unauthorized(response.text)
+        if response.status_code == 200:
+            return response.json()
+    except connexion.exceptions.Forbidden as e:
+        raise e
+    except Exception as e:
+        raise connexion.exceptions.Unauthorized(str(e))
 
 
 def get_auth_token(request, token=None):
@@ -92,6 +95,8 @@ def exchange_refresh_token(refresh_token, client_id=PCGL_CLIENT_ID, client_secre
     response = requests.post(f"{PCGL_ISSUER}/oauth2/token", data=payload)
     if response.status_code == 200:
         return response.json()
+    if response.status_code == 401:
+        raise UserTokenError(response.text)
     raise AuthzError(response.text)
 
 
