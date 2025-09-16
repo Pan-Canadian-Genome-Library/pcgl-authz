@@ -105,9 +105,9 @@ def get_service(service_id):
                 service.pop("service_uuid")
                 service.pop("authorization")
                 return service, 200
-            else:
-                return {"error": "No service found"}, 404
         return {"error": "User is not authorized to get services"}, 403
+    except auth.NoServiceFoundError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 404
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
     except auth.AuthzError as e:
@@ -141,7 +141,8 @@ async def create_service_token(service_id):
                 return {"error": f"Service UUID does not match service name"}
             token = auth.create_service_token(service_uuid)
             return {"token": token}, 200
-        return {"error": "Could not find service"}, 404
+    except auth.NoServiceFoundError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 404
     except auth.AuthzError as e:
         return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
