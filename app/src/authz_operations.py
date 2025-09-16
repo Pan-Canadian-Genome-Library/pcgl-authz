@@ -9,12 +9,8 @@ import requests
 
 app = connexion.AsyncApp(__name__)
 
-
-def handle_token(token):
-    response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": token}, allow_redirects=False)
-    if response.status_code == 200:
-        return response.json()
-    raise connexion.exceptions.Unauthorized(response.text)
+def handle_token(token, request=None):
+    return auth.handle_token(token, request)
 
 
 # API endpoints
