@@ -439,8 +439,11 @@ components:
           description: Information about the OIDC client associated with the service. This information is required to be submitted when registering a service, but will not be returned on GET requests for security reasons.
           required:
             - client_id
+            - client_secret
           properties:
             client_id:
+              type: string
+            client_secret:
               type: string
     StudyAuthorization:
       type: object
