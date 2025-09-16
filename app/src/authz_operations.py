@@ -88,7 +88,9 @@ async def add_service():
     service = await connexion.request.json()
     try:
         if auth.is_site_admin(connexion.request):
-            return auth.add_service(service)
+            result, status_code = auth.add_service(service)
+            result.pop("authorization")
+            return result, status_code
         return {"error": "User is not authorized to add services"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
