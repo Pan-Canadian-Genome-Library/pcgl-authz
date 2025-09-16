@@ -3,6 +3,7 @@ import requests
 import json
 import uuid
 from connexion.context import context
+import connexion
 
 
 ## Env vars for most auth methods:
@@ -16,6 +17,9 @@ PCGL_COID = os.getenv("PCGL_COID", "")
 PCGL_CORE_API_USER = os.getenv("PCGL_CORE_API_USER", "")
 PCGL_CORE_API_KEY = os.getenv("PCGL_CORE_API_KEY", "")
 PCGL_API_URL = os.getenv("PCGL_API_URL", "")
+PCGL_ISSUER = os.getenv("PCGL_ISSUER", None)
+PCGL_CLIENT_ID = os.getenv("PCGL_CLIENT_ID", None)
+PCGL_CLIENT_SECRET = os.getenv("PCGL_CLIENT_SECRET", None)
 
 
 class AuthzError(Exception):
@@ -37,6 +41,26 @@ class UserServiceMismatchError(AuthzError):
     pass
 
 
+def handle_token(token, request=None):
+    if "X-Service-Id" not in request.headers:
+        response = exchange_refresh_token(token)
+    else:
+        service_dict, status_code = get_service(request.headers["X-Service-Id"])
+        if status_code != 200:
+            raise connexion.exceptions.Forbidden(service_dict["message"])
+        client_id = service_dict["authorization"]["client_id"]
+        client_secret = service_dict["authorization"]["client_secret"]
+        response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
+
+    access_token = response["access_token"]
+
+    response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
+
+    if response.status_code == 200:
+        return response.json()
+    raise connexion.exceptions.Unauthorized(response.text)
+
+
 def get_auth_token(request, token=None):
     """
     Extracts token from request's Authorization header
@@ -51,6 +75,24 @@ def get_auth_token(request, token=None):
         return None
 
     return token
+
+
+def exchange_refresh_token(refresh_token, client_id=PCGL_CLIENT_ID, client_secret=PCGL_CLIENT_SECRET):
+    """
+    Gets a token from the keycloak server.
+    """
+    payload = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "scope": "offline_access+openid+profile+email+org.cilogon.userinfo"
+    }
+
+    response = requests.post(f"{PCGL_ISSUER}/oauth2/token", data=payload)
+    if response.status_code == 200:
+        return response.json()
+    raise AuthzError(response.text)
 
 
 ######
