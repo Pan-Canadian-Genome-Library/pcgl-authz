@@ -22,6 +22,7 @@ services:
       PCGL_USER_KEY: email
       PCGL_ISSUER: ${PCGL_ISSUER}
       PCGL_CLIENT_ID: ${PCGL_CLIENT_ID}
+      PCGL_CLIENT_SECRET: ${PCGL_CLIENT_SECRET}
       PCGL_CORE_API_USER: ${PCGL_CORE_API_USER}
       PCGL_CORE_API_KEY: ${PCGL_CORE_API_KEY}
       PCGL_COID: ${PCGL_COID}
@@ -62,7 +63,7 @@ services:
     cap_add:
       - IPC_LOCK
     command: vault server -config=/vault/config/vault-config.json
-  
+
   # Comment this section out if reverse-proxy is not needed
   caddy:
     # Reverse proxy for routing and data services auth
