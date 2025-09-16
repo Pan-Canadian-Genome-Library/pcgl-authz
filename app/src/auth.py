@@ -58,8 +58,8 @@ def handle_token(token, request=None):
 
         if response.status_code == 200:
             return response.json()
-    except connexion.exceptions.Forbidden as e:
-        raise e
+    except NoServiceFoundError as e:
+        raise connexion.exceptions.Forbidden(str(e))
     except Exception as e:
         raise connexion.exceptions.Unauthorized(str(e))
 
@@ -148,8 +148,7 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
 
         # check to see if this is from a registered service:
         service_dict, status_code = get_service(request.headers['X-Service-Id'])
-        if status_code != 200:
-            raise NoServiceFoundError(f"no service registered as {request.headers['X-Service-Id']}")
+
         if not verify_service_token(service=request.headers['X-Service-Id'], token=request.headers['X-Service-Token'], service_uuid=service_dict["service_uuid"]):
             raise ServiceTokenError("Service token is not valid")
         client_id = service_dict["authorization"]["client_id"]
@@ -344,7 +343,7 @@ def get_service(service_id):
     response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
     if status_code < 300:
         return response, status_code
-    return {"message": f"{service_id} not found"}, status_code
+    raise NoServiceFoundError(f"{service_id} not found")
 
 
 def list_services():
@@ -600,8 +599,6 @@ def verify_service_token(service=None, token=None, service_uuid=None):
         service_dict, status_code = get_service(service)
         if status_code == 200:
             body["input"]["body"]["service"] = service_dict["service_uuid"]
-        else:
-            raise AuthzError(f"Could not find service {service}")
     response = requests.post(
         OPA_URL + "/v1/data/service/verified",
         json=body
