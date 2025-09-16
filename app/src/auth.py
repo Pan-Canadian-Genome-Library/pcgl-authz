@@ -43,16 +43,14 @@ class UserServiceMismatchError(AuthzError):
 
 def handle_token(token, request=None):
     try:
-        if "X-Service-Id" not in request.headers:
-            response = exchange_refresh_token(token)
-        else:
+        access_token = token
+        if "X-Service-Id" in request.headers:
             service_dict, status_code = get_service(request.headers["X-Service-Id"])
-            if status_code != 200:
-                raise connexion.exceptions.Forbidden(service_dict["message"])
-            client_id = service_dict["authorization"]["client_id"]
-            client_secret = service_dict["authorization"]["client_secret"]
-            response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
-        access_token = response["access_token"]
+            if "token_type" in service_dict["authorization"] and service_dict["authorization"]["token_type"] == "refresh":
+                client_id = service_dict["authorization"]["client_id"]
+                client_secret = service_dict["authorization"]["client_secret"]
+                response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
+                access_token = response["access_token"]
 
         response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
 
