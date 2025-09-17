@@ -3,6 +3,7 @@ import requests
 import json
 import uuid
 from connexion.context import context
+import connexion
 
 
 ## Env vars for most auth methods:
@@ -16,6 +17,9 @@ PCGL_COID = os.getenv("PCGL_COID", "")
 PCGL_CORE_API_USER = os.getenv("PCGL_CORE_API_USER", "")
 PCGL_CORE_API_KEY = os.getenv("PCGL_CORE_API_KEY", "")
 PCGL_API_URL = os.getenv("PCGL_API_URL", "")
+PCGL_ISSUER = os.getenv("PCGL_ISSUER", None)
+PCGL_CLIENT_ID = os.getenv("PCGL_CLIENT_ID", None)
+PCGL_CLIENT_SECRET = os.getenv("PCGL_CLIENT_SECRET", None)
 
 
 class AuthzError(Exception):
@@ -37,6 +41,27 @@ class UserServiceMismatchError(AuthzError):
     pass
 
 
+def handle_token(token, request=None):
+    try:
+        access_token = token
+        if "X-Service-Id" in request.headers:
+            service_dict, status_code = get_service(request.headers["X-Service-Id"])
+            if "token_type" in service_dict["authorization"] and service_dict["authorization"]["token_type"] == "refresh":
+                client_id = service_dict["authorization"]["client_id"]
+                client_secret = service_dict["authorization"]["client_secret"]
+                response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
+                access_token = response["access_token"]
+
+        response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
+
+        if response.status_code == 200:
+            return response.json()
+    except NoServiceFoundError as e:
+        raise connexion.exceptions.Forbidden(str(e))
+    except Exception as e:
+        raise connexion.exceptions.Unauthorized(str(e))
+
+
 def get_auth_token(request, token=None):
     """
     Extracts token from request's Authorization header
@@ -51,6 +76,26 @@ def get_auth_token(request, token=None):
         return None
 
     return token
+
+
+def exchange_refresh_token(refresh_token, client_id=PCGL_CLIENT_ID, client_secret=PCGL_CLIENT_SECRET):
+    """
+    Gets a token from the keycloak server.
+    """
+    payload = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "scope": "offline_access+openid+profile+email+org.cilogon.userinfo"
+    }
+
+    response = requests.post(f"{PCGL_ISSUER}/oauth2/token", data=payload)
+    if response.status_code == 200:
+        return response.json()
+    if response.status_code == 401:
+        raise UserTokenError(response.text)
+    raise AuthzError(response.text)
 
 
 ######
@@ -101,8 +146,7 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
 
         # check to see if this is from a registered service:
         service_dict, status_code = get_service(request.headers['X-Service-Id'])
-        if status_code != 200:
-            raise NoServiceFoundError(f"no service registered as {request.headers['X-Service-Id']}")
+
         if not verify_service_token(service=request.headers['X-Service-Id'], token=request.headers['X-Service-Token'], service_uuid=service_dict["service_uuid"]):
             raise ServiceTokenError("Service token is not valid")
         client_id = service_dict["authorization"]["client_id"]
@@ -297,7 +341,7 @@ def get_service(service_id):
     response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
     if status_code < 300:
         return response, status_code
-    return {"message": f"{service_id} not found"}, status_code
+    raise NoServiceFoundError(f"{service_id} not found")
 
 
 def list_services():
@@ -553,8 +597,6 @@ def verify_service_token(service=None, token=None, service_uuid=None):
         service_dict, status_code = get_service(service)
         if status_code == 200:
             body["input"]["body"]["service"] = service_dict["service_uuid"]
-        else:
-            raise AuthzError(f"Could not find service {service}")
     response = requests.post(
         OPA_URL + "/v1/data/service/verified",
         json=body

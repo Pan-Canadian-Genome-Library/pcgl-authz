@@ -439,9 +439,20 @@ components:
           description: Information about the OIDC client associated with the service. This information is required to be submitted when registering a service, but will not be returned on GET requests for security reasons.
           required:
             - client_id
+            - client_secret
+            - token_type
           properties:
             client_id:
               type: string
+            client_secret:
+              type: string
+            token_type:
+              type: string
+              description: Which type of token should authz handle for this service? If access is specified, the service will need to exchange any refresh tokens for access tokens on their end.
+              default: access
+              enum:
+                - refresh
+                - access
     StudyAuthorization:
       type: object
       description: study and the researchers involved in this study

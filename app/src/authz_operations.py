@@ -9,12 +9,8 @@ import requests
 
 app = connexion.AsyncApp(__name__)
 
-
-def handle_token(token):
-    response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": token}, allow_redirects=False)
-    if response.status_code == 200:
-        return response.json()
-    raise connexion.exceptions.Unauthorized(response.text)
+def handle_token(token, request=None):
+    return auth.handle_token(token, request)
 
 
 # API endpoints
@@ -88,7 +84,9 @@ async def add_service():
     service = await connexion.request.json()
     try:
         if auth.is_site_admin(connexion.request):
-            return auth.add_service(service)
+            result, status_code = auth.add_service(service)
+            result.pop("authorization")
+            return result, status_code
         return {"error": "User is not authorized to add services"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
@@ -107,9 +105,9 @@ def get_service(service_id):
                 service.pop("service_uuid")
                 service.pop("authorization")
                 return service, 200
-            else:
-                return {"error": "No service found"}, 404
         return {"error": "User is not authorized to get services"}, 403
+    except auth.NoServiceFoundError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 404
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
     except auth.AuthzError as e:
@@ -143,7 +141,8 @@ async def create_service_token(service_id):
                 return {"error": f"Service UUID does not match service name"}
             token = auth.create_service_token(service_uuid)
             return {"token": token}, 200
-        return {"error": "Could not find service"}, 404
+    except auth.NoServiceFoundError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 404
     except auth.AuthzError as e:
         return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
