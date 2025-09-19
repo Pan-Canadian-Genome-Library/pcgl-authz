@@ -651,17 +651,15 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
     status_code = 201 # Created
 
     response = user
-
+    errors = []
     # set entries in user index
     if "oidcsub" not in response:
-        response = {"error": f"user {comanage_id} does not have an oidcsub"}
-        status_code = 500
+        errors.append({"error": f"user {comanage_id} does not have an oidcsub"})
     else:
         oidcsub = response["oidcsub"]
         user_index[oidcsub] = str(comanage_id)
     if "pcglid" not in response:
-        response = {"error": f"user {comanage_id} does not have an PCGL ID"}
-        status_code = 500
+        errors.append({"error": f"user {comanage_id} does not have an PCGL ID"})
     else:
         pcglid = response["pcglid"]
         user_index[pcglid] = str(comanage_id)
@@ -674,6 +672,9 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
             user_index[email].append(str(comanage_id))
 
     set_service_store_secret("opa", key=f"users/index", value=json.dumps(user_index))
+
+    if len(errors) > 0:
+        return errors, 500
 
     return response, status_code
 
