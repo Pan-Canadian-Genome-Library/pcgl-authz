@@ -237,7 +237,7 @@ def list_authz_for_user(pcgl_id):
             user_dict, status_code = auth.get_user_by_pcglid(pcgl_id)
         if status_code == 200:
             # sync with COManage:
-            auth.get_user_record(comanage_id=user_dict["comanage_id"], force=True)
+            auth.get_user_record(comanage_id=user_dict["comanage_id"])
             if "pcglid" not in user_dict:
                 return {"error": "User not found in PCGL"}, 404
             result = {
