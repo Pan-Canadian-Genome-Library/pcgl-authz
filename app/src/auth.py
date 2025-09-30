@@ -110,6 +110,7 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
     input = {
         "token": token,
         "body": {
+            "token_info": context["token_info"],
             "method": method,
             "path": path
         }
