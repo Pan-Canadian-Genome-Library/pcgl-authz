@@ -20,17 +20,11 @@ allow if {
 	input.headers["X-Opa"][_] == data.opa_secret
 }
 
-# The authx library uses these paths:
-authx_paths := {
-	"permissions": ["v1", "data", "permissions"],
-}
-
 # An authorized user has a valid token (and passes in that same token for both bearer and body)
 # Authz users can access the authx paths
 allow if {
-	input.path == authx_paths[_]
+	input.path == ["v1", "data", "permissions"]
 	input.method == "POST"
-	data.permissions.valid_token == true
 	input.body.input.token == input.identity
 }
 
