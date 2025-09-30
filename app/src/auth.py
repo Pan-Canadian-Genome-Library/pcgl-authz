@@ -356,7 +356,7 @@ def list_services():
     return result, 200
 
 
-def add_service(service_dict):
+def add_service(service_dict, request=None):
     service_id = service_dict["service_id"]
 
     updated_service = False
