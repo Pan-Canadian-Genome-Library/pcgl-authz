@@ -29,6 +29,7 @@ services:
       PCGL_API_URL: ${PCGL_API_URL}
       PCGL_ADMIN_GROUP: ${PCGL_ADMIN_GROUP}
       PCGL_MEMBER_GROUP: ${PCGL_MEMBER_GROUP}
+      TEST_KEY: usethistestkey
     entrypoint:
       - "bash"
       - "/app/entrypoint.sh"
