@@ -363,7 +363,6 @@ def add_service(service_dict, request=None):
     service_id = service_dict["service_id"]
 
     updated_service = False
-    service_dict["service_uuid"] = str(uuid.uuid1())
     # list the service in the services index:
     services = []
     response, status_code = get_service_store_secret("opa", key="services")
@@ -371,6 +370,7 @@ def add_service(service_dict, request=None):
         services = response["services"]
     if service_id not in services:
         services.append(service_id)
+        service_dict["service_uuid"] = str(uuid.uuid1())
     else:
         updated_service = True
     set_service_store_secret("opa", key="services", value=json.dumps({"services": services}))
@@ -400,6 +400,11 @@ def add_service(service_dict, request=None):
     response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps({"paths": paths}))
 
     # write the service into its own store:
+    # if updating, get the uuid:
+    if updated_service:
+        response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
+        if status_code == 200:
+            service_dict["service_uuid"] = response["service_uuid"]
     response, status_code = set_service_store_secret("opa", key=f"services/{service_id}", value=json.dumps(service_dict))
     return response, status_code
 
