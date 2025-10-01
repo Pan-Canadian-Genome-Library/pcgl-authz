@@ -257,14 +257,9 @@ def list_authz_for_user(pcgl_id):
                 result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
             else:
                 return permissions, status_code
-            result["groups"] = []
-            groups, status_code = auth.get_service_store_secret("opa", key="groups")
+            groups, status_code = auth.get_groups_for_user(user_dict["comanage_id"])
             if status_code == 200:
-                for group_id in groups["index"]:
-                    group = groups["index"][str(group_id)]
-                    members = group.pop("members")
-                    if user_dict["comanage_id"] in members:
-                        result["groups"].append(group)
+                result["groups"] = groups
             return result, status_code
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401

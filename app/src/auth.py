@@ -680,6 +680,28 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
     return response, status_code
 
 
+def get_groups_for_user(comanage_id):
+    result = []
+    groups, status_code = get_service_store_secret("opa", key="groups")
+    if status_code == 200:
+        if "groups" in context["token_info"]:
+            # if we have been passed in the groups in the token, this is a bit faster
+            for group_name in context["token_info"]["groups"]:
+                group_id = groups["ids"][group_name]
+                group = groups["index"][group_id]
+                group.pop("members")
+                result.append(group)
+        else:
+            # if we don't already know the group names, we have to run through all the groups and look for this comanage_id
+            for group_id in groups["index"]:
+                group = groups["index"][str(group_id)]
+                members = group.pop("members")
+                if comanage_id in members:
+                    result.append(group)
+        return result, 200
+    return groups, status_code
+
+
 def get_comanage_user(oidcsub=None):
     oidcsub = context["user"]
     response = requests.get(f"{PCGL_API_URL}/registry/api/co/{PCGL_COID}/core/v1/people", params={"identifier": oidcsub}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
