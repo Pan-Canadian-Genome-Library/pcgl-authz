@@ -379,20 +379,25 @@ def add_service(service_dict, request=None):
     paths_response, status_code = get_service_store_secret("opa", key="paths")
     if status_code == 200:
         paths = paths_response["paths"]
-        # add the actions:
-        for action in service_dict["readable"]:
-            if not updated_service:
-                if action["endpoint"] in paths["read"][action["method"].lower()]:
-                    return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
-            paths["read"][action["method"].lower()].append(action["endpoint"])
-        for action in service_dict["editable"]:
-            if not updated_service:
-                if action["endpoint"] in paths["edit"][action["method"].lower()]:
-                    return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
-            paths["edit"][action["method"].lower()].append(action["endpoint"])
-        response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps(paths_response))
     else:
-        return {"error": "paths not available"}, 500
+        # initialize paths dict:
+        paths = {"read": {}, "edit": {}}
+    # add the actions:
+    for action in service_dict["readable"]:
+        if action["method"].lower() not in paths["read"]:
+            paths["read"][action["method"].lower()] = []
+        if not updated_service:
+            if action["endpoint"] in paths["read"][action["method"].lower()]:
+                return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
+        paths["read"][action["method"].lower()].append(action["endpoint"])
+    for action in service_dict["editable"]:
+        if action["method"].lower() not in paths["edit"]:
+            paths["edit"][action["method"].lower()] = []
+        if not updated_service:
+            if action["endpoint"] in paths["edit"][action["method"].lower()]:
+                return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
+        paths["edit"][action["method"].lower()].append(action["endpoint"])
+    response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps({"paths": paths}))
 
     # write the service into its own store:
     response, status_code = set_service_store_secret("opa", key=f"services/{service_id}", value=json.dumps(service_dict))
