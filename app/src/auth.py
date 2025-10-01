@@ -20,7 +20,9 @@ PCGL_API_URL = os.getenv("PCGL_API_URL", "")
 PCGL_ISSUER = os.getenv("PCGL_ISSUER", None)
 PCGL_CLIENT_ID = os.getenv("PCGL_CLIENT_ID", None)
 PCGL_CLIENT_SECRET = os.getenv("PCGL_CLIENT_SECRET", None)
-
+PCGL_ADMIN_GROUP = os.getenv("PCGL_ADMIN_GROUP", "CO:admins")
+PCGL_MEMBER_GROUP = os.getenv("PCGL_MEMBER_GROUP", "CO:members:active")
+PCGL_CURATOR_GROUP = os.getenv("PCGL_CURATOR_GROUP", "PCGL:site_curators")
 
 class AuthzError(Exception):
     pass
@@ -731,13 +733,13 @@ def get_comanage_groups():
             data["ids"][group["name"]] = str(group["id"])
             data["index"][str(group["id"])] = group
             # special groups:
-            if group["name"] == "CO:admins":
+            if group["name"] == PCGL_ADMIN_GROUP:
                 data["ids"]["admin"] = str(group["id"])
                 data["admin"] = group["members"]
-            elif group["name"] == "PCGL:site_curators":
+            elif group["name"] == PCGL_CURATOR_GROUP:
                 data["ids"]["curator"] = str(group["id"])
                 data["curator"] = group["members"]
-            elif group["name"] == "CO:members:active":
+            elif group["name"] == PCGL_MEMBER_GROUP:
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]
         set_service_store_secret("opa", key="groups", value=json.dumps(data))

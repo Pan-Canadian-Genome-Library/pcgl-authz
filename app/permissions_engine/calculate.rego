@@ -23,7 +23,11 @@ import rego.v1
 #
 import data.vault.groups as groups
 
-site_admin if {
+site_admin := true if {
+	"PCGL_ADMIN_GROUP" in data.idp.user_info.groups
+}
+
+else if {
 	user_id in groups.admin
 }
 
