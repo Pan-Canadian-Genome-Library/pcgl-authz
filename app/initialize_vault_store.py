@@ -21,10 +21,6 @@ try:
     else:
         raise Exception("couldn't get openid configuration")
 
-    # initialize groups from comanage
-    response, status_code = reload_comanage()
-    print(response)
-
 except Exception as e:
     print(f"{type(e)}{str(e)}")
     sys.exit(4)

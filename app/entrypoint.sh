@@ -53,7 +53,7 @@ do
   python3 /app/refresh_stores.py
   if [[ $? -eq 0 ]]; then
       echo "vault token stored"
-      sleep 300
+      sleep 3000
   else
       echo "vault token not stored"
       sleep 30
