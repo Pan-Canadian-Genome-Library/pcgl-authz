@@ -11,8 +11,7 @@ OPA_URL = os.getenv('OPA_URL', "http://localhost:8181")
 VAULT_URL = os.getenv('VAULT_URL', "http://localhost:8200")
 SERVICE_NAME = os.getenv("SERVICE_NAME")
 APPROLE_TOKEN_FILE = os.getenv("APPROLE_TOKEN_FILE", "/home/pcgl/approle-token")
-ROLE_ID_FILE = os.getenv("ROLE_ID_FILE", "/home/pcgl/roleid")
-VERIFY_ROLE_ID_FILE = os.getenv("ROLE_ID_FILE", "/home/pcgl/verify-roleid")
+VERIFY_ROLE_ID_FILE = "/home/pcgl/verify-roleid"
 PCGL_COID = os.getenv("PCGL_COID", "")
 PCGL_CORE_API_USER = os.getenv("PCGL_CORE_API_USER", "")
 PCGL_CORE_API_KEY = os.getenv("PCGL_CORE_API_KEY", "")
@@ -121,6 +120,8 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
         input["body"]["study"] = study
     if user_pcglid is not None:
         input["body"]["user_pcglid"] = user_pcglid
+    if "X-Test-Mode" in request.headers and request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        input["body"]["test"] = True
     response = requests.post(
         OPA_URL + "/v1/data/permissions",
         headers=headers,
@@ -209,47 +210,47 @@ def is_action_allowed_for_study(request, method=None, path=None, study=None):
 # Users
 #####
 
-def write_user(user_dict):
+def write_user(user_dict, service=SERVICE_NAME):
     if "id" in user_dict:
         comanage_id = user_dict.pop("id")
-        response, status_code = set_service_store_secret("opa", key=f"users/{comanage_id}", value=json.dumps(user_dict))
+        response, status_code = set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user_dict))
         if status_code != 200:
             response = {"error": f"User {comanage_id} was not found"}
     return response, status_code
 
 
-def get_user_by_pcglid(pcglid):
-    user_index, status_code = get_service_store_secret("opa", key=f"users/index")
+def get_user_by_pcglid(pcglid, service=SERVICE_NAME):
+    user_index, status_code = get_service_store_secret(service, key=f"users/index")
     if status_code == 200:
         if pcglid in user_index:
-            user, status_code = get_service_store_secret("opa", key=f"users/{user_index[pcglid]}")
+            user, status_code = get_service_store_secret(service, key=f"users/{user_index[pcglid]}")
             user["id"] = user_index[pcglid]
             return user, status_code
     return {"error": f"no user found for pcglid {pcglid}"}, 404
 
 
-def get_user_by_comanage_id(comanage_id):
-    return get_service_store_secret("opa", key=f"users/{comanage_id}")
+def get_user_by_comanage_id(comanage_id, service=SERVICE_NAME):
+    return get_service_store_secret(service, key=f"users/{comanage_id}")
 
 
-def get_self():
+def get_self(service=SERVICE_NAME):
     oidcsub = context["user"]
-    user_index, status_code = get_service_store_secret("opa", key=f"users/index")
+    user_index, status_code = get_service_store_secret(service, key=f"users/index")
     if status_code == 200:
         if oidcsub in user_index:
-            return get_service_store_secret("opa", key=f"users/{user_index[oidcsub]}")
+            return get_service_store_secret(service, key=f"users/{user_index[oidcsub]}")
         # try to see if we can create this record:
-        get_user_record(oidcsub=oidcsub, force=True)
+        get_user_record(oidcsub=oidcsub, force=True, service=service)
     return {"error": f"could not find user {oidcsub}"}, 404
 
 
-def lookup_user_by_email(email):
-    user_index, status_code = get_service_store_secret("opa", key=f"users/index")
+def lookup_user_by_email(email, service=SERVICE_NAME):
+    user_index, status_code = get_service_store_secret(service, key=f"users/index")
     if status_code == 200:
         if email in user_index:
             result = []
             for comanage_id in user_index[email]:
-                user, status_code = get_service_store_secret("opa", key=f"users/{comanage_id}")
+                user, status_code = get_service_store_secret(service, key=f"users/{comanage_id}")
                 if status_code == 200:
                     user["id"] = comanage_id
                     result.append(user)
@@ -261,25 +262,25 @@ def lookup_user_by_email(email):
 # Studies
 ######
 
-def get_study(study_id):
+def get_study(study_id, service=SERVICE_NAME):
     """
     Returns a StudyAuthorization for the study_id
     Authorized only if the service requesting it is allowed to see Opa's vault secrets.
     """
-    response, status_code = get_service_store_secret("opa", key=f"studies/{study_id}")
+    response, status_code = get_service_store_secret(service, key=f"studies/{study_id}")
     if status_code < 300:
         return response[study_id], status_code
     return {"message": f"{study_id} not found"}, status_code
 
 
-def list_studies():
-    response, status_code = get_service_store_secret("opa", key="studies")
+def list_studies(service=SERVICE_NAME):
+    response, status_code = get_service_store_secret(service, key="studies")
     if status_code == 200:
         return response['studies'], status_code
     return response, status_code
 
 
-def add_study(study_auth):
+def add_study(study_auth, service=SERVICE_NAME):
     """
     Creates or updates a StudyAuthorization in Opa's vault service store for the study_id.
     Authorized only if the requesting service is allowed to write Opa's vault secrets.
@@ -291,10 +292,10 @@ def add_study(study_auth):
         if "date_created" not in study_auth:
             from datetime import datetime
             study_auth["date_created"] = datetime.today().strftime('%Y-%m-%d')
-        response, status_code = set_service_store_secret("opa", key=f"studies/{study_id}", value=json.dumps({study_id: study_auth}))
+        response, status_code = set_service_store_secret(service, key=f"studies/{study_id}", value=json.dumps({study_id: study_auth}))
         if status_code < 300:
             # update the values for the study list
-            response2, status_code = get_service_store_secret("opa", key="studies")
+            response2, status_code = get_service_store_secret(service, key="studies")
 
             if status_code == 200:
                 # check to see if it's already here:
@@ -302,13 +303,13 @@ def add_study(study_auth):
                     response2['studies'].append(study_id)
             else:
                 response2 = {'studies': [study_id]}
-            response2, status_code = set_service_store_secret("opa", key="studies", value=json.dumps(response2))
+            response2, status_code = set_service_store_secret(service, key="studies", value=json.dumps(response2))
             return response, status_code
 
     return {"message": f"{study_id} not added"}, status_code
 
 
-def remove_study(study_id):
+def remove_study(study_id, service=SERVICE_NAME):
     """
     Removes the StudyAuthorization in Opa's vault service store for the study_id.
     Authorized only if the requesting service is allowed to write Opa's vault service store.
@@ -318,16 +319,16 @@ def remove_study(study_id):
         return response, status_code
     if status_code < 300:
         # create or update the study itself
-        response, status_code = delete_service_store_secret("opa", key=f"studies/{study_id}")
+        response, status_code = delete_service_store_secret(service, key=f"studies/{study_id}")
 
         # update the values for the study list
-        response, status_code = get_service_store_secret("opa", key="studies")
+        response, status_code = get_service_store_secret(service, key="studies")
 
         if status_code == 200:
             # check to see if it's here:
             if study_id in response['studies']:
                 response['studies'].remove(study_id)
-                response, status_code = set_service_store_secret("opa", key="studies", value=json.dumps(response))
+                response, status_code = set_service_store_secret(service, key="studies", value=json.dumps(response))
 
         return {"success": f"{study_id} removed"}, status_code
     return {"message": f"{study_id} not removed"}, status_code
@@ -337,46 +338,47 @@ def remove_study(study_id):
 # Services
 ######
 
-def get_service(service_id):
+def get_service(service_id, service=SERVICE_NAME):
     """
     Returns a Service for the service_id
     """
-    response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
+    response, status_code = get_service_store_secret(service, key=f"services/{service_id}")
     if status_code < 300:
         return response, status_code
     raise NoServiceFoundError(f"{service_id} not found")
 
 
-def list_services():
+def list_services(service=SERVICE_NAME):
     result = []
-    response, status_code = get_service_store_secret("opa", key="services")
+    response, status_code = get_service_store_secret(service, key="services")
     if status_code == 200:
         services = response["services"]
         for service_id in services:
-            response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
+            response, status_code = get_service_store_secret(service, key=f"services/{service_id}")
             if status_code == 200:
                 result.append(response)
     return result, 200
 
 
-def add_service(service_dict, request=None):
+def add_service(service_dict, request=None, service=SERVICE_NAME):
     service_id = service_dict["service_id"]
 
     updated_service = False
     # list the service in the services index:
     services = []
-    response, status_code = get_service_store_secret("opa", key="services")
+    response, status_code = get_service_store_secret(service, key="services")
     if status_code == 200:
         services = response["services"]
     if service_id not in services:
         services.append(service_id)
-        service_dict["service_uuid"] = str(uuid.uuid1())
+        if request is not None and "X-Test-Mode" not in request.headers:
+            service_dict["service_uuid"] = str(uuid.uuid1())
     else:
         updated_service = True
-    set_service_store_secret("opa", key="services", value=json.dumps({"services": services}))
+    set_service_store_secret(service, key="services", value=json.dumps({"services": services}))
 
     # add the actions to the paths
-    paths_response, status_code = get_service_store_secret("opa", key="paths")
+    paths_response, status_code = get_service_store_secret(service, key="paths")
     if status_code == 200:
         paths = paths_response["paths"]
     else:
@@ -397,30 +399,30 @@ def add_service(service_dict, request=None):
             if action["endpoint"] in paths["edit"][action["method"].lower()]:
                 return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
         paths["edit"][action["method"].lower()].append(action["endpoint"])
-    response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps({"paths": paths}))
+    response, status_code = set_service_store_secret(service, key="paths", value=json.dumps({"paths": paths}))
 
     # write the service into its own store:
     # if updating, get the uuid:
     if updated_service:
-        response, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
+        response, status_code = get_service_store_secret(service, key=f"services/{service_id}")
         if status_code == 200:
             service_dict["service_uuid"] = response["service_uuid"]
-    response, status_code = set_service_store_secret("opa", key=f"services/{service_id}", value=json.dumps(service_dict))
+    response, status_code = set_service_store_secret(service, key=f"services/{service_id}", value=json.dumps(service_dict))
     return response, status_code
 
 
-def remove_service(service_id):
+def remove_service(service_id, service=SERVICE_NAME):
     # remove the service from the services index:
-    response, status_code = get_service_store_secret("opa", key="services")
+    response, status_code = get_service_store_secret(service, key="services")
     if status_code == 200:
         services = response["services"]
         if service_id in services:
             services.remove(service_id)
-        set_service_store_secret("opa", key="services", value=json.dumps(response))
+        set_service_store_secret(service, key="services", value=json.dumps(response))
 
     # remove the actions from the paths
-    service_dict, status_code = get_service_store_secret("opa", key=f"services/{service_id}")
-    paths_response, status_code = get_service_store_secret("opa", key="paths")
+    service_dict, status_code = get_service_store_secret(service, key=f"services/{service_id}")
+    paths_response, status_code = get_service_store_secret(service, key="paths")
     if status_code == 200:
         paths = paths_response["paths"]
         # remove the actions:
@@ -430,10 +432,10 @@ def remove_service(service_id):
         for action in service_dict["editable"]:
             if action["endpoint"] in paths["edit"][action["method"].lower()]:
                 paths["edit"][action["method"].lower()].remove(action["endpoint"])
-        response, status_code = set_service_store_secret("opa", key="paths", value=json.dumps(paths_response))
+        response, status_code = set_service_store_secret(service, key="paths", value=json.dumps(paths_response))
 
     # remove the service's own store:
-    response, status_code = delete_service_store_secret("opa", key=f"services/{service_id}")
+    response, status_code = delete_service_store_secret(service, key=f"services/{service_id}")
     return response, status_code
 
 
@@ -458,7 +460,7 @@ def get_vault_token_for_service(service=SERVICE_NAME, approle_token=None, role_i
     # in CanDIGv2 docker stack, roleid should have been passed in
     if role_id is None:
         try:
-            with open(ROLE_ID_FILE) as f:
+            with open(f"/home/pcgl/{service}-roleid") as f:
                 role_id = f.read().strip()
         except Exception as e:
             raise AuthzError(str(e))
@@ -489,13 +491,13 @@ def get_vault_token_for_service(service=SERVICE_NAME, approle_token=None, role_i
     return None
 
 
-def set_service_store_secret(service, key=None, value=None, role_id=None, secret_id=None, token=None):
+def set_service_store_secret(service=SERVICE_NAME, key=None, value=None, role_id=None, secret_id=None, token=None):
     """
     Set a Vault service store secret. Should only be called from inside a container.
     """
     if token is None:
         try:
-            token = get_vault_token_for_service(role_id=role_id, secret_id=secret_id)
+            token = get_vault_token_for_service(service=service, role_id=role_id, secret_id=secret_id)
         except Exception as e:
             return {"error": str(e)}, 500
     if token is None:
@@ -511,17 +513,17 @@ def set_service_store_secret(service, key=None, value=None, role_id=None, secret
         value = json.dumps(value)
     response = requests.post(url, headers=headers, data=value)
     if response.status_code >= 200 and response.status_code < 300:
-        return get_service_store_secret(service, key, token=token)
+        return get_service_store_secret(service, key, token=token, role_id=role_id, secret_id=secret_id)
     return response.json(), response.status_code
 
 
-def get_service_store_secret(service, key=None, role_id=None, secret_id=None, token=None):
+def get_service_store_secret(service=SERVICE_NAME, key=None, role_id=None, secret_id=None, token=None):
     """
     Get a Vault service store secret. Should only be called from inside a container.
     """
     if token is None:
         try:
-            token = get_vault_token_for_service(role_id=role_id, secret_id=secret_id)
+            token = get_vault_token_for_service(service=service, role_id=role_id, secret_id=secret_id)
         except Exception as e:
             return {"error": str(e)}, 500
     if token is None:
@@ -540,13 +542,13 @@ def get_service_store_secret(service, key=None, role_id=None, secret_id=None, to
     return {"error": response.text}, response.status_code
 
 
-def delete_service_store_secret(service, key=None, role_id=None, secret_id=None, token=None):
+def delete_service_store_secret(service=SERVICE_NAME, key=None, role_id=None, secret_id=None, token=None):
     """
     Delete a Vault service store secret. Should only be called from inside a container.
     """
     if token is None:
         try:
-            token = get_vault_token_for_service(role_id=role_id, secret_id=secret_id)
+            token = get_vault_token_for_service(service=service, role_id=role_id, secret_id=secret_id)
         except Exception as e:
             return {"error": str(e)}, 500
     if token is None:
@@ -617,11 +619,11 @@ def verify_service_token(service=None, token=None, service_uuid=None):
     return response.status_code == 200 and "result" in response.json() and response.json()["result"]
 
 
-def get_user_record(comanage_id=None, oidcsub=None, force=False):
+def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE_NAME):
     if comanage_id is None and oidcsub is None:
         return {"error": "no user specified"}, 500
 
-    user_index, status_code = get_service_store_secret("opa", key=f"users/index")
+    user_index, status_code = get_service_store_secret(service, key=f"users/index")
     # initialize the user index if it doesn't exist
     if status_code != 200:
         user_index = {}
@@ -636,7 +638,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
             else:
                 return lookup_user, status_code
 
-    response, status_code = get_service_store_secret("opa", key=f"users/{comanage_id}")
+    response, status_code = get_service_store_secret(service, key=f"users/{comanage_id}")
     if status_code == 200 and not force:
         if "pcglid" in response:
             return response, status_code
@@ -660,7 +662,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
                 emails.append({"address": email["Mail"], "type": email["Type"]})
     user["emails"] = emails
 
-    set_service_store_secret("opa", key=f"users/{comanage_id}", value=json.dumps(user))
+    set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user))
     status_code = 201 # Created
 
     response = user
@@ -684,7 +686,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
         if str(comanage_id) not in user_index[email]:
             user_index[email].append(str(comanage_id))
 
-    set_service_store_secret("opa", key=f"users/index", value=json.dumps(user_index))
+    set_service_store_secret(service, key=f"users/index", value=json.dumps(user_index))
 
     if len(errors) > 0:
         return errors, 500
@@ -692,9 +694,9 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False):
     return response, status_code
 
 
-def get_groups_for_user(comanage_id):
+def get_groups_for_user(comanage_id, service=SERVICE_NAME):
     result = []
-    groups, status_code = get_service_store_secret("opa", key="groups")
+    groups, status_code = get_service_store_secret(service, key="groups")
     if status_code == 200:
         if "groups" in context["token_info"]:
             # if we have been passed in the groups in the token, this is a bit faster
@@ -722,7 +724,7 @@ def get_comanage_user(oidcsub=None):
     return response.text, response.status_code
 
 
-def get_comanage_groups():
+def get_comanage_groups(service=SERVICE_NAME):
     result = []
     response = requests.get(f"{PCGL_API_URL}/registry/co_groups.json", params={"coid": PCGL_COID}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
     if response.status_code == 200:
@@ -752,30 +754,29 @@ def get_comanage_groups():
             elif group["name"] == PCGL_MEMBER_GROUP:
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]
-        set_service_store_secret("opa", key="groups", value=json.dumps(data))
+        set_service_store_secret(service, key="groups", value=json.dumps(data))
         return data, 200
 
     return response.text, response.status_code
 
 
-def reload_comanage():
-    cached_groups, status_code = get_service_store_secret("opa", key="groups")
+def reload_comanage(service=SERVICE_NAME):
+    cached_groups, status_code = get_service_store_secret(service, key="groups")
     if status_code != 200:
         cached_groups = {"members": [], "ids": {}, "index": {}}
 
     # reset user index
-    delete_service_store_secret("opa", key=f"users/index")
-
-    comanage_groups, status_code = get_comanage_groups()
+    delete_service_store_secret(service, key=f"users/index")
+    comanage_groups, status_code = get_comanage_groups(service=service)
     if status_code == 200:
-        comanage_groups, status_code = set_service_store_secret("opa", key="groups", value=json.dumps(comanage_groups))
+        comanage_groups, status_code = set_service_store_secret(service, key="groups", value=json.dumps(comanage_groups))
     else:
         return {"error": f"failed to save groups: {comanage_groups}"}, status_code
     result = []
     # initialize new users:
     try:
         for member in reversed(comanage_groups["members"]):
-            result.append(get_user_record(member, force=True))
+            result.append(get_user_record(member, force=True, service=service))
     except Exception as e:
         return {"error": f"failed to save users: {type(e)} {str(e)}"}, status_code
     return {"message": result}, 200

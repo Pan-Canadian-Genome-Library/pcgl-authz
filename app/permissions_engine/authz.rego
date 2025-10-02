@@ -15,7 +15,14 @@ allow if {
 
 # Opa should be able to store its vault token
 allow if {
-	input.path == ["v1", "data", "store_token"]
+	input.path == ["v1", "data", "opa_token"]
+	input.method == "PUT"
+	input.headers["X-Opa"][_] == data.opa_secret
+}
+
+# Opa should be able to store its vault token
+allow if {
+	input.path == ["v1", "data", "test_token"]
 	input.method == "PUT"
 	input.headers["X-Opa"][_] == data.opa_secret
 }
