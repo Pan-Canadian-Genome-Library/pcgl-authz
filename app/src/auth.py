@@ -45,8 +45,23 @@ class UserServiceMismatchError(AuthzError):
 def handle_token(token, request=None):
     try:
         access_token = token
+        # set up testing: the token is the "name" and also the type of user we're testing
+        service = SERVICE_NAME
+        if "X-Test-Mode" in request.headers and request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+            service = "test"
+            token_info = {
+              "iss": "http://test.iss.com",
+              "aud": "test",
+              "groups": [
+                PCGL_MEMBER_GROUP
+              ]
+            }
+            token_info["sub"] = token
+            if "admin" in token:
+                token_info["groups"].append(PCGL_ADMIN_GROUP)
+            return token_info
         if "X-Service-Id" in request.headers:
-            service_dict, status_code = get_service(request.headers["X-Service-Id"])
+            service_dict, status_code = get_service(request.headers["X-Service-Id"], service=service)
             if "token_type" in service_dict["authorization"] and service_dict["authorization"]["token_type"] == "refresh":
                 client_id = service_dict["authorization"]["client_id"]
                 client_secret = service_dict["authorization"]["client_secret"]
@@ -120,7 +135,9 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
         input["body"]["study"] = study
     if user_pcglid is not None:
         input["body"]["user_pcglid"] = user_pcglid
+    service_namespace = SERVICE_NAME
     if "X-Test-Mode" in request.headers and request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service_namespace = "test"
         input["body"]["test"] = True
     response = requests.post(
         OPA_URL + "/v1/data/permissions",
@@ -149,9 +166,9 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
             raise ServiceHeadersError(f"Service headers incorrect: {str(e)}")
 
         # check to see if this is from a registered service:
-        service_dict, status_code = get_service(request.headers['X-Service-Id'])
+        service_dict, status_code = get_service(request.headers['X-Service-Id'], service=service_namespace)
 
-        if not verify_service_token(service=request.headers['X-Service-Id'], token=request.headers['X-Service-Token'], service_uuid=service_dict["service_uuid"]):
+        if not verify_service_token(service=request.headers['X-Service-Id'], token=request.headers['X-Service-Token'], service_uuid=service_dict["service_uuid"], service_namespace=service_namespace):
             raise ServiceTokenError("Service token is not valid")
         client_id = service_dict["authorization"]["client_id"]
         if "user_aud" in permissions and client_id == permissions["user_aud"]:
@@ -286,7 +303,7 @@ def add_study(study_auth, service=SERVICE_NAME):
     Authorized only if the requesting service is allowed to write Opa's vault secrets.
     """
     study_id = study_auth["study_id"]
-    response, status_code = get_study(study_id)
+    response, status_code = get_study(study_id, service=service)
     if status_code < 300 or status_code == 404:
         # create or update the study itself
         if "date_created" not in study_auth:
@@ -314,7 +331,7 @@ def remove_study(study_id, service=SERVICE_NAME):
     Removes the StudyAuthorization in Opa's vault service store for the study_id.
     Authorized only if the requesting service is allowed to write Opa's vault service store.
     """
-    response, status_code = get_study(study_id)
+    response, status_code = get_study(study_id, service=service)
     if status_code == 404:
         return response, status_code
     if status_code < 300:
@@ -437,6 +454,55 @@ def remove_service(service_id, service=SERVICE_NAME):
     # remove the service's own store:
     response, status_code = delete_service_store_secret(service, key=f"services/{service_id}")
     return response, status_code
+
+
+def list_group(service=SERVICE_NAME):
+    groups, status_code = get_service_store_secret(service, key="groups")
+    if group_id in groups["ids"]:
+        group_id = groups["ids"][group_id]
+    if status_code == 200:
+        result = []
+        for comanage_id in groups["index"][group_id]["members"]:
+            user, status_code = get_user_by_comanage_id(comanage_id, service=service)
+            if status_code == 200:
+                if "pcglid" in user and user["pcglid"] not in result:
+                    result.append(user["pcglid"])
+        return result, 200
+    return groups, status_code
+
+
+def list_authz_for_user(pcgl_id, service=SERVICE_NAME):
+    if pcgl_id == "me":
+        user_dict, status_code = get_self(service=service)
+    else:
+        user_dict, status_code = get_user_by_pcglid(pcgl_id, service=service)
+    if status_code == 200:
+        # sync with COManage:
+        get_user_record(comanage_id=user_dict["comanage_id"], service=service)
+        if "pcglid" not in user_dict:
+            return {"error": "User not found in PCGL"}, 404
+        result = {
+            "userinfo": {
+                "emails": user_dict["emails"],
+                "pcgl_id": user_dict["pcglid"]
+            },
+            "study_authorizations": {
+            },
+            "dac_authorizations": list(user_dict["study_authorizations"].values())
+        }
+        permissions, status_code = get_opa_permissions(request=connexion.request, user_pcglid=user_dict["pcglid"], method=None, path=None, study=None)
+        if status_code == 200:
+            result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
+            result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
+            result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
+            result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
+        else:
+            return permissions, status_code
+        groups, status_code = get_groups_for_user(user_dict["comanage_id"], service=service)
+        if status_code == 200:
+            result["groups"] = groups
+        return result, status_code
+
 
 
 ######
@@ -591,7 +657,7 @@ def create_service_token(service_uuid):
     return str(token)
 
 
-def verify_service_token(service=None, token=None, service_uuid=None):
+def verify_service_token(service=None, token=None, service_uuid=None, service_namespace=SERVICE_NAME):
     """
     Verify that a token comes from a particular service. Should only be called from inside a container.
     """
@@ -609,7 +675,7 @@ def verify_service_token(service=None, token=None, service_uuid=None):
     }
 
     if service_uuid is None:
-        service_dict, status_code = get_service(service)
+        service_dict, status_code = get_service(service, service=service_namespace)
         if status_code == 200:
             body["input"]["body"]["service"] = service_dict["service_uuid"]
     response = requests.post(
@@ -617,6 +683,11 @@ def verify_service_token(service=None, token=None, service_uuid=None):
         json=body
     )
     return response.status_code == 200 and "result" in response.json() and response.json()["result"]
+
+
+######
+# Comanage calls
+######
 
 
 def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE_NAME):
@@ -716,7 +787,7 @@ def get_groups_for_user(comanage_id, service=SERVICE_NAME):
     return groups, status_code
 
 
-def get_comanage_user(oidcsub=None):
+def get_comanage_user(oidcsub=None, service=SERVICE_NAME):
     oidcsub = context["user"]
     response = requests.get(f"{PCGL_API_URL}/registry/api/co/{PCGL_COID}/core/v1/people", params={"identifier": oidcsub}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
     if response.status_code == 200:
