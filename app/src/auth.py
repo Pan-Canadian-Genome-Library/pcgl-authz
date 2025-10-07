@@ -764,6 +764,9 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
     if len(errors) > 0:
         return errors, 500
 
+    if len(errors) > 0:
+        return errors, 500
+
     return response, status_code
 
 
