@@ -145,7 +145,6 @@ def get_service_token(service_uuid):
     }
 
     response = requests.post("http://flask:1235/authz/service/test/verify", headers=headers, json={"service_uuid": service_uuid})
-    print(response.text)
     service_token = response.json()["token"]
     return service_token
 
@@ -254,29 +253,94 @@ def test_get_users(service_uuid, users, user):
     assert response.json()["userinfo"]["pcgl_id"] == users[user]["pcglid"]
 
 
+def get_dacs():
+    return [
+        ("user1",
+            [
+                {
+                    "study_id": "SYNTHETIC-1",
+                    "start_date": THE_PAST,
+                    "end_date": THE_FUTURE
+                }
+            ]
+        ),
+        ("user2",
+            [
+                {
+                    "study_id": "SYNTHETIC-1",
+                    "start_date": THE_PAST,
+                    "end_date": THE_FUTURE
+                },
+                {
+                    "study_id": "SYNTHETIC-4",
+                    "start_date": THE_PAST,
+                    "end_date": THE_FUTURE
+                }
+            ]
+        ),
+        ("user3",
+            [
+                { # this study is already OVER
+                    "study_id": "SYNTHETIC-1",
+                    "start_date": THE_PAST,
+                    "end_date": THE_PAST
+                },
+                {
+                    "study_id": "SYNTHETIC-4",
+                    "start_date": THE_PAST,
+                    "end_date": THE_FUTURE
+                }
+            ]
+        )
+    ]
+
+
+@pytest.mark.parametrize('user, input', get_dacs())
+def test_add_dacs(user, input, service_uuid):
+    headers = {
+        "Authorization": f"Bearer {user}",
+        "X-Test-Mode": os.getenv("TEST_KEY")
+    }
+
+    headers["X-Service-Id"] = "test"
+    headers["X-Service-Token"] = get_service_token(service_uuid)
+
+    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    print(response.text)
+    pcglid = response.json()["userinfo"]["pcgl_id"]
+
+    headers["Authorization"] = f"Bearer admin"
+    for study in input:
+        response = requests.post(f"http://flask:1235/authz/user/{pcglid}", headers=headers, json=study)
+        print(response.text)
+        assert response.status_code == 200
+
+    headers["Authorization"] = f"Bearer {user}"
+    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    print(response.text)
+    for study in input:
+        if TODAY >= date.fromisoformat(study["start_date"]) and TODAY <= date.fromisoformat(study["end_date"]):
+            assert study["study_id"] in response.json()["study_authorizations"]["readable_studies"]
+
+
 def get_user_studies():
     return [
         (  # site admin should be able to read all studies
             "admin",
-            {"endpoint": "/test/study", "method": "GET"},
+            {"endpoint": "test/study", "method": "GET"},
             ["SYNTHETIC-1", "SYNTHETIC-2", "SYNTHETIC-3", "SYNTHETIC-4"],
         ),
         (  # user1 can view the studies it's a member of
             "user1",
-            {"endpoint": "/test/study", "method": "GET"},
+            {"endpoint": "test/study", "method": "GET"},
             ["SYNTHETIC-1", "SYNTHETIC-3", "SYNTHETIC-4"],
         ),
         (  # user3 can view the studies it's a member of + DAC studies,
             # but SYNTHETIC-1's authorized dates are in the past
             "user3",
-            {"endpoint": "/test/study", "method": "GET"},
+            {"endpoint": "test/study", "method": "GET"},
             ["SYNTHETIC-3", "SYNTHETIC-4"],
-        ),
-        (
-            "dac_user",
-            {"endpoint": "/test/study", "method": "GET"},
-            ["SYNTHETIC-3"],
-        ),
+        )
     ]
 
 
