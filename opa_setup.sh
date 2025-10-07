@@ -20,6 +20,7 @@ flask=$(docker ps -a --format "{{.Names}}" | grep "flask" | awk '{print $1}')
 opa_container=$(docker ps -a --format "{{.Names}}" | grep "opa" | awk '{print $1}')
 
 bash $PWD/create_service_store.sh "opa"
+bash $PWD/create_service_store.sh "test"
 
 docker exec $flask touch /app/initial_setup
 

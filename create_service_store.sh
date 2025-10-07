@@ -10,29 +10,26 @@ source secrets.sh
 vault=$(docker ps --format "{{.Names}}" | grep vault_1 | awk '{print $1}')
 
 create_service_store() {
-   echo ">> create a policy for opa's access to the approle role and secret"
-   docker exec $vault sh -c "echo 'path \"auth/approle/role/opa/role-id\" {capabilities = [\"read\"]}' >> opa-policy.hcl; echo 'path \"auth/approle/role/opa/secret-id\" {capabilities = [\"update\"]}' >> opa-policy.hcl; vault policy write opa opa-policy.hcl"
+   local service=$@
 
-   echo ">> create an approle for opa"
-   cmd="vault write auth/approle/role/opa secret_id_ttl=10m token_ttl=20m token_max_ttl=30m token_policies=opa"
-   if [ $PCGL_DEBUG_MODE -eq 0 ]; then
-      # get service's container IPs:
-      local ips=$(collect_ips)
+   echo ">> create a policy for ${service}'s access to the approle role and secret"
+   docker exec $vault sh -c "echo 'path \"auth/approle/role/${service}/role-id\" {capabilities = [\"read\"]}' >> ${service}-policy.hcl; echo 'path \"auth/approle/role/${service}/secret-id\" {capabilities = [\"update\"]}' >> ${service}-policy.hcl; vault policy write ${service} ${service}-policy.hcl"
 
-      cmd+=" secret_id_bound_cidrs=${ips} token_bound_cidrs=${ips}"
-   fi
+   echo ">> create an approle for ${service}"
+   cmd="vault write auth/approle/role/${service} secret_id_ttl=10m token_ttl=20m token_max_ttl=30m token_policies=${service}"
    docker exec $vault sh -c "${cmd}"
 
-   echo ">> setting up opa store policy"
-   docker exec $vault sh -c "echo 'path \"opa/*\" {capabilities = [\"create\", \"update\", \"read\", \"delete\"]}' >> opa-policy.hcl; vault policy write opa opa-policy.hcl"
+   echo ">> setting up ${service} store policy"
+   docker exec $vault sh -c "echo 'path \"${service}/*\" {capabilities = [\"create\", \"update\", \"read\", \"delete\"]}' >> ${service}-policy.hcl; vault policy write ${service} ${service}-policy.hcl"
 
    echo ">> save the role id to secrets"
-   docker exec $vault sh -c "vault read -field=role_id auth/approle/role/opa/role-id" > tmp/vault/opa-roleid
-   docker cp $PWD/tmp/vault/opa-roleid pcgl-authz_flask_1:/home/pcgl/roleid
-   rm $PWD/tmp/vault/opa-roleid
 
-   echo ">> create a kv store for opa"
-   docker exec $vault vault secrets enable -path=opa -description="opa kv store" kv
+   docker exec $vault sh -c "vault read -field=role_id auth/approle/role/${service}/role-id" > tmp/vault/${service}-roleid
+   docker cp $PWD/tmp/vault/${service}-roleid pcgl-authz_flask_1:/home/pcgl/${service}-roleid
+   rm $PWD/tmp/vault/${service}-roleid
+
+   echo ">> create a kv store for ${service}"
+   docker exec $vault vault secrets enable -path=${service} -description="${service} kv store" kv
 
    echo ">> create a policy for service-verification"
    docker exec $vault sh -c "echo 'path \"auth/approle/role/verify/role-id\" {capabilities = [\"read\"]}' >> verify-policy.hcl; echo 'path \"auth/approle/role/verify/secret-id\" {capabilities = [\"update\"]}' >> verify-policy.hcl; vault policy write verify verify-policy.hcl"
@@ -47,23 +44,6 @@ create_service_store() {
    rm $PWD/tmp/vault/verify-roleid
 
    docker cp $PWD/tmp/vault/approle-token pcgl-authz_flask_1:/home/pcgl/approle-token
-}
-
-collect_ips() {
-   local containers="opa flask"
-
-   # get service's container IPs:
-   local network_containers=$(docker network inspect pcgl-authz_default | jq '.[0].Containers' | jq '[map(.Name), map(.IPv4Address)] | transpose | map( {(.[0]): .[1]}) | add')
-   local ips=()
-   if [ -n "$network_containers" ]; then
-      for container in $containers
-      do
-         local ip=$(echo $network_containers | jq --arg x "pcgl-authz_${container}_1" -r '.[$x]')
-         ip="${ip%/*}/32"
-         ips+="\"$ip\","
-      done
-   fi
-   echo $ips
 }
 
 if [[ $vault != "" ]]; then

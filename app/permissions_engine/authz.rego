@@ -15,22 +15,23 @@ allow if {
 
 # Opa should be able to store its vault token
 allow if {
-	input.path == ["v1", "data", "store_token"]
+	input.path == ["v1", "data", "opa_token"]
 	input.method == "PUT"
 	input.headers["X-Opa"][_] == data.opa_secret
 }
 
-# The authx library uses these paths:
-authx_paths := {
-	"permissions": ["v1", "data", "permissions"],
+# Opa should be able to store its vault token
+allow if {
+	input.path == ["v1", "data", "test_token"]
+	input.method == "PUT"
+	input.headers["X-Opa"][_] == data.opa_secret
 }
 
 # An authorized user has a valid token (and passes in that same token for both bearer and body)
 # Authz users can access the authx paths
 allow if {
-	input.path == authx_paths[_]
+	input.path == ["v1", "data", "permissions"]
 	input.method == "POST"
-	data.permissions.valid_token == true
 	input.body.input.token == input.identity
 }
 

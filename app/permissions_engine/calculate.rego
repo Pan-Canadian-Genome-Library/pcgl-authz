@@ -23,7 +23,11 @@ import rego.v1
 #
 import data.vault.groups as groups
 
-site_admin if {
+site_admin := true if {
+	"PCGL_ADMIN_GROUP" in data.idp.user_info.groups
+}
+
+else if {
 	user_id in groups.admin
 }
 
@@ -136,4 +140,9 @@ else := accessible_studies if {
 else := accessible_studies if {
 	input.body.method = "DELETE"
 	regex.match(paths.edit.delete[_], input.body.path) == true
+}
+
+else := readable_studies if {
+	input.body.method = "GET"
+	regex.match(paths.read.get[_], input.body.path) == true
 }

@@ -8,7 +8,7 @@ if [[ -f "/app/initial_setup" ]]; then
     chmod 777 /app/data
 
     # set up our default values
-    sed -i s/CANDIG_USER_KEY/email/ /app/permissions_engine/idp.rego
+    sed -i s@PCGL_ADMIN_GROUP@$PCGL_ADMIN_GROUP@ /app/permissions_engine/calculate.rego
 
     token=$(dd if=/dev/urandom bs=1 count=16 2>/dev/null | base64 | tr -d '\n\r+' | sed s/[^A-Za-z0-9]//g)
     echo { \"opa_secret\": \"$token\" } > /app/permissions_engine/opa_secret.json
@@ -53,7 +53,7 @@ do
   python3 /app/refresh_stores.py
   if [[ $? -eq 0 ]]; then
       echo "vault token stored"
-      sleep 300
+      sleep 3000
   else
       echo "vault token not stored"
       sleep 30
