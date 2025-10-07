@@ -26,6 +26,7 @@ def test_setup_vault():
     print(auth.delete_service_store_secret(service="test", key="studies/*"))
     print(auth.delete_service_store_secret(service="test", key="paths"))
     print(auth.delete_service_store_secret(service="test", key="groups"))
+    print(auth.delete_service_store_secret(service="test", key="users/*"))
 
     # check to see if that worked:
     paths, status_code = auth.get_service_store_secret(service="test", key="paths")
@@ -365,6 +366,28 @@ def test_user_studies(user, input, expected_result, service_uuid):
     print(response.text)
     for i in range(len(expected_result)):
         assert response.json()[i] == True
+
+
+def test_remove_dac(service_uuid):
+    headers = {
+        "Authorization": f"Bearer user2",
+        "X-Test-Mode": os.getenv("TEST_KEY")
+    }
+
+    headers["X-Service-Id"] = "test"
+    headers["X-Service-Token"] = get_service_token(service_uuid)
+
+    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    print(response.text)
+    pcglid = response.json()["userinfo"]["pcgl_id"]
+
+    headers["Authorization"] = f"Bearer admin"
+    response = requests.delete(f"http://flask:1235/authz/user/{pcglid}/study/SYNTHETIC-1", headers=headers)
+    print(response.text)
+
+    response = requests.get(f"http://flask:1235/authz/user/{pcglid}", headers=headers)
+    print(response.text)
+    assert "SYNTHETIC-1" not in response.json()["study_authorizations"]["readable_studies"]
 
 
 ####
