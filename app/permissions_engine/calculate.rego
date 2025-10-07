@@ -141,3 +141,8 @@ else := accessible_studies if {
 	input.body.method = "DELETE"
 	regex.match(paths.edit.delete[_], input.body.path) == true
 }
+
+else := readable_studies if {
+	input.body.method = "GET"
+	regex.match(paths.read.get[_], input.body.path) == true
+}
