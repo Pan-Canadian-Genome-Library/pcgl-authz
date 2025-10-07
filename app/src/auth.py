@@ -131,6 +131,8 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
             "path": path
         }
     }
+    if method is not None:
+        input["body"]["method"] = method.upper()
     if study is not None:
         input["body"]["study"] = study
     if user_pcglid is not None:
