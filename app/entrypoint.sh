@@ -49,11 +49,12 @@ gunicorn -k uvicorn.workers.UvicornWorker server:app &
 while [ 0 -eq 0 ]
 do
   echo "storing vault token"
+  date
   bash /app/renew_token.sh
   python3 /app/refresh_stores.py
   if [[ $? -eq 0 ]]; then
       echo "vault token stored"
-      sleep 3000
+      sleep 300
   else
       echo "vault token not stored"
       sleep 30

@@ -32,7 +32,8 @@ def test_setup_vault():
     paths, status_code = auth.get_service_store_secret(service="test", key="paths")
     assert status_code == 404
 
-    auth.get_comanage_groups(service="test")
+    groups, status_code = auth.get_comanage_groups(service="test")
+    assert status_code == 200
 
 
 def test_setup_users(users):
