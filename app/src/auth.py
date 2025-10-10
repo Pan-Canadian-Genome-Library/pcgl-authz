@@ -841,8 +841,6 @@ def reload_comanage(service=SERVICE_NAME):
     if status_code != 200:
         cached_groups = {"members": [], "ids": {}, "index": {}}
 
-    # reset user index
-    delete_service_store_secret(service, key=f"users/index")
     comanage_groups, status_code = get_comanage_groups(service=service)
     if status_code == 200:
         comanage_groups, status_code = set_service_store_secret(service, key="groups", value=json.dumps(comanage_groups))
