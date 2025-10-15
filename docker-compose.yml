@@ -30,6 +30,7 @@ services:
       PCGL_ADMIN_GROUP: ${PCGL_ADMIN_GROUP}
       PCGL_MEMBER_GROUP: ${PCGL_MEMBER_GROUP}
       TEST_KEY: usethistestkey
+      HOST: http://localhost:1235
     entrypoint:
       - "bash"
       - "/app/entrypoint.sh"

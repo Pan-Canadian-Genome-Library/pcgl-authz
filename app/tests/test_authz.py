@@ -18,6 +18,8 @@ import authz_operations
 import auth
 
 
+HOST = os.getenv("HOST", "http://flask:1235")
+
 def test_setup_vault():
     # remove any extra stores:
     print(auth.delete_service_store_secret(service="test", key="services"))
@@ -85,7 +87,7 @@ def test_add_service(service_uuid):
         }
       ]
     }
-    response = requests.post("http://flask:1235/authz/service", headers=headers, json=service_body)
+    response = requests.post(f"{HOST}/authz/service", headers=headers, json=service_body)
     print(response.text)
     service_dict = response.json()
     assert "service_uuid" in service_dict
@@ -122,20 +124,20 @@ def test_remove_service():
     }
 
     # add service
-    response = requests.post("http://flask:1235/authz/service", headers=headers, json=service_body)
+    response = requests.post(f"{HOST}/authz/service", headers=headers, json=service_body)
     print(response.text)
     service_dict = response.json()
     assert "service_uuid" in service_dict
 
     # list services: should have two, test and remove_me
-    response = requests.get("http://flask:1235/authz/service", headers=headers)
+    response = requests.get(f"{HOST}/authz/service", headers=headers)
     assert len(response.json()) == 2
 
     # remove remove_me
-    response = requests.delete("http://flask:1235/authz/service/remove_me", headers=headers)
+    response = requests.delete(f"{HOST}/authz/service/remove_me", headers=headers)
 
     # list services: should have one, test
-    response = requests.get("http://flask:1235/authz/service", headers=headers)
+    response = requests.get(f"{HOST}/authz/service", headers=headers)
     print(response.text)
     assert len(response.json()) == 1
 
@@ -146,7 +148,7 @@ def get_service_token(service_uuid):
         "X-Test-Mode": os.getenv("TEST_KEY")
     }
 
-    response = requests.post("http://flask:1235/authz/service/test/verify", headers=headers, json={"service_uuid": service_uuid})
+    response = requests.post(f"{HOST}/authz/service/test/verify", headers=headers, json={"service_uuid": service_uuid})
     service_token = response.json()["token"]
     return service_token
 
@@ -158,7 +160,7 @@ def test_service_token(service_uuid):
     }
 
     # if there is no service provided, this won't work
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     assert response.status_code == 400
 
@@ -166,14 +168,14 @@ def test_service_token(service_uuid):
     headers["X-Service-Token"] = get_service_token(service_uuid)
 
     # if there is a service provided, should work
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     assert response.status_code == 200
 
     # if there is an invalid service provided, this won't work
     headers["X-Service-Id"] = "testtest"
 
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     assert response.status_code == 403
 
@@ -181,7 +183,7 @@ def test_service_token(service_uuid):
     headers["X-Service-Id"] = "test"
     headers["X-Service-Token"] = "notatoken"
 
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     assert response.status_code == 403
 
@@ -195,11 +197,11 @@ def test_add_studies(studies, service_uuid):
     headers["X-Service-Token"] = get_service_token(service_uuid)
 
     for study in studies:
-        response = requests.post("http://flask:1235/authz/study", headers=headers, json=studies[study])
+        response = requests.post(f"{HOST}/authz/study", headers=headers, json=studies[study])
         print(response.text)
         assert response.status_code == 200
 
-    response = requests.get("http://flask:1235/authz/study", headers=headers)
+    response = requests.get(f"{HOST}/authz/study", headers=headers)
     print(response.text)
     assert len(response.json()) == len(studies)
 
@@ -213,11 +215,11 @@ def test_remove_study(studies, service_uuid):
     headers["X-Service-Token"] = get_service_token(service_uuid)
 
     study = "SYNTHETIC-0"
-    response = requests.delete(f"http://flask:1235/authz/study/{study}", headers=headers)
+    response = requests.delete(f"{HOST}/authz/study/{study}", headers=headers)
     print(response.text)
     assert response.status_code == 200
 
-    response = requests.get("http://flask:1235/authz/study", headers=headers)
+    response = requests.get(f"{HOST}/authz/study", headers=headers)
     print(response.text)
     assert len(response.json()) == len(studies) - 1
 
@@ -243,13 +245,13 @@ def test_get_users(service_uuid, users, user):
     headers["X-Service-Token"] = get_service_token(service_uuid)
 
     # get their own info
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     assert "userinfo" in response.json()
     assert response.json()["userinfo"]["pcgl_id"] == users[user]["pcglid"]
 
     # get a user's info
-    response = requests.get(f"http://flask:1235/authz/user/{user}", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/{user}", headers=headers)
     print(response.text)
     assert "userinfo" in response.json()
     assert response.json()["userinfo"]["pcgl_id"] == users[user]["pcglid"]
@@ -307,18 +309,18 @@ def test_add_dacs(user, input, service_uuid):
     headers["X-Service-Id"] = "test"
     headers["X-Service-Token"] = get_service_token(service_uuid)
 
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     pcglid = response.json()["userinfo"]["pcgl_id"]
 
     headers["Authorization"] = f"Bearer admin"
     for study in input:
-        response = requests.post(f"http://flask:1235/authz/user/{pcglid}", headers=headers, json=study)
+        response = requests.post(f"{HOST}/authz/user/{pcglid}", headers=headers, json=study)
         print(response.text)
         assert response.status_code == 200
 
     headers["Authorization"] = f"Bearer {user}"
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     for study in input:
         if TODAY >= date.fromisoformat(study["start_date"]) and TODAY <= date.fromisoformat(study["end_date"]):
@@ -361,9 +363,9 @@ def test_user_studies(user, input, expected_result, service_uuid):
         "studies": expected_result
     }
 
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
-    response = requests.post("http://flask:1235/authz/allowed", headers=headers, json=body)
+    response = requests.post(f"{HOST}/authz/allowed", headers=headers, json=body)
     print(response.text)
     for i in range(len(expected_result)):
         assert response.json()[i] == True
@@ -378,15 +380,15 @@ def test_remove_dac(service_uuid):
     headers["X-Service-Id"] = "test"
     headers["X-Service-Token"] = get_service_token(service_uuid)
 
-    response = requests.get("http://flask:1235/authz/user/me", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/me", headers=headers)
     print(response.text)
     pcglid = response.json()["userinfo"]["pcgl_id"]
 
     headers["Authorization"] = f"Bearer admin"
-    response = requests.delete(f"http://flask:1235/authz/user/{pcglid}/study/SYNTHETIC-1", headers=headers)
+    response = requests.delete(f"{HOST}/authz/user/{pcglid}/study/SYNTHETIC-1", headers=headers)
     print(response.text)
 
-    response = requests.get(f"http://flask:1235/authz/user/{pcglid}", headers=headers)
+    response = requests.get(f"{HOST}/authz/user/{pcglid}", headers=headers)
     print(response.text)
     assert "SYNTHETIC-1" not in response.json()["study_authorizations"]["readable_studies"]
 

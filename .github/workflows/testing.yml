@@ -1,0 +1,49 @@
+name: PCGL-authz-build-test
+run-name: Build Validation
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      module:
+        type: string
+
+jobs:
+  Build-PCGL-authz:
+    runs-on: [ubuntu-latest]
+    defaults:
+      run:
+       shell: bash -l {0}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Setup environment file
+        env:
+            CLIENT_ID: ${{ secrets.CLIENT_ID }}
+            CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+            CORE_API_KEY: ${{ secrets.CORE_API_KEY }}
+        run: |
+            cp secrets.sh.example secrets.sh
+            sed -i "s@PCGL_CLIENT_ID=@PCGL_CLIENT_ID=$CLIENT_ID@" secrets.sh
+            sed -i "s@PCGL_CLIENT_SECRET=@PCGL_CLIENT_SECRET=$CLIENT_SECRET@" secrets.sh
+            sed -i "s@PCGL_CORE_API_KEY=@PCGL_CORE_API_KEY=$CORE_API_KEY@" secrets.sh
+      - name: Display environment file
+        run: cat secrets.sh
+      - name: Build stack
+        run: |
+             bash run.sh
+      - name: Integration testing
+        run: |
+             docker exec pcgl-authz_flask_1 pytest
+      - name: Save docker container logs
+        if: always()
+        run: docker logs pcgl-authz_flask_1 > tmp/container_logs.txt 2>&1
+      - name: Save container logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Container log
+          path: |
+                tmp/container_logs.txt
