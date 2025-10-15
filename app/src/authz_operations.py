@@ -126,7 +126,10 @@ def remove_service(service_id):
         service = "test"
     try:
         if auth.is_site_admin(connexion.request):
-            return auth.remove_service(service_id, service=service)
+            result, status_code = auth.remove_service(service_id, service=service)
+            if status_code == 204:
+                return None, 204
+            return result, status_code
         return {"error": "User is not authorized to remove services"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
