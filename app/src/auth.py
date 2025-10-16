@@ -129,12 +129,14 @@ def get_secret_file_value_or_env(file_path: str, env_var: str) -> str:
         return os.getenv(env_var)
     raise AuthzError(f"Couldn't read the secret from the {file_path} path or the {env_var} env variable.")
 
+
 def get_vault_namespace_header() -> dict:
     if VAULT_NAMESPACE:
         return {
             "X-Vault-Namespace": VAULT_NAMESPACE
         }
     return {}
+
 
 def get_vault_headers(token: str) -> dict:
     """
@@ -146,6 +148,7 @@ def get_vault_headers(token: str) -> dict:
         "X-Vault-Token": token,
         **get_vault_namespace_header()
     }
+
 
 ######
 # General authorization methods
