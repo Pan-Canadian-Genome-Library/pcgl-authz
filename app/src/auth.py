@@ -9,6 +9,7 @@ import connexion
 ## Env vars for most auth methods:
 OPA_URL = os.getenv('OPA_URL', "http://localhost:8181")
 VAULT_URL = os.getenv('VAULT_URL', "http://localhost:8200")
+VAULT_NAMESPACE = os.getenv("VAULT_NAMESPACE", "")
 SERVICE_NAME = os.getenv("SERVICE_NAME")
 APPROLE_TOKEN_FILE = os.getenv("APPROLE_TOKEN_FILE", "/home/pcgl/approle-token")
 VERIFY_ROLE_ID_FILE = "/home/pcgl/verify-roleid"
@@ -113,6 +114,38 @@ def exchange_refresh_token(refresh_token, client_id=PCGL_CLIENT_ID, client_secre
         raise UserTokenError(response.text)
     raise AuthzError(response.text)
 
+
+def get_secret_file_value_or_env(file_path: str, env_var: str) -> str:
+    """
+    Tries to reads and return the value contained at `file_path` if it exists.\n
+    Otherwise tries to read the value from the `env_var` environment variable if it exists.\n
+    Raises an `AuthzError` if neither can be found.
+    """
+    if file_path and os.path.exists(file_path):
+        with open(file_path, 'r') as f:
+            secret = f.read().strip()
+        return secret
+    if env_var:
+        return os.getenv(env_var)
+    raise AuthzError(f"Couldn't read the secret from the {file_path} path or the {env_var} env variable.")
+
+def get_vault_namespace_header() -> dict:
+    if VAULT_NAMESPACE:
+        return {
+            "X-Vault-Namespace": VAULT_NAMESPACE
+        }
+    return {}
+
+def get_vault_headers(token: str) -> dict:
+    """
+    Returns authentication headers for Vault API HTTP requests.\n
+    The `token` argument is passed to the `X-Vault-Token` header.\n
+    If the `VAULT_NAMESPACE` env var is set, includes its value in the `X-Vault-Namespace` header.
+    """
+    return {
+        "X-Vault-Token": token,
+        **get_vault_namespace_header()
+    }
 
 ######
 # General authorization methods
@@ -520,16 +553,14 @@ def get_vault_token_for_service(service=SERVICE_NAME, approle_token=None, role_i
         raise AuthzError("no SERVICE_NAME specified")
     # in CanDIGv2 docker stack, approle token should have been passed in
     if approle_token is None:
-        with open(APPROLE_TOKEN_FILE) as f:
-            approle_token = f.read().strip()
+        approle_token = get_secret_file_value_or_env(APPROLE_TOKEN_FILE, "APPROLE_TOKEN")
     if approle_token is None:
         raise AuthzError("no approle token found")
 
     # in CanDIGv2 docker stack, roleid should have been passed in
     if role_id is None:
         try:
-            with open(f"/home/pcgl/{service}-roleid") as f:
-                role_id = f.read().strip()
+            role_id = get_secret_file_value_or_env(f"/home/pcgl/{service}-roleid", f"{service.upper()}-ROLEID")
         except Exception as e:
             raise AuthzError(str(e))
     if role_id is None:
@@ -538,7 +569,7 @@ def get_vault_token_for_service(service=SERVICE_NAME, approle_token=None, role_i
     # get the secret_id
     if secret_id is None:
         url = f"{VAULT_URL}/v1/auth/approle/role/{service}/secret-id"
-        headers = { "X-Vault-Token": approle_token }
+        headers = get_vault_headers(token=approle_token)
         response = requests.post(url=url, headers=headers)
         if response.status_code == 200:
             secret_id = response.json()["data"]["secret_id"]
@@ -573,9 +604,7 @@ def set_service_store_secret(service=SERVICE_NAME, key=None, value=None, role_id
     if key is None:
         return {"error": "no key specified"}, 400
 
-    headers = {
-        "X-Vault-Token": token
-    }
+    headers = get_vault_headers(token=token)
     url = f"{VAULT_URL}/v1/{service}/{key}"
     if "dict" in str(type(value)):
         value = json.dumps(value)
@@ -599,9 +628,7 @@ def get_service_store_secret(service=SERVICE_NAME, key=None, role_id=None, secre
     if key is None:
         return {"error": "no key specified"}, 400
 
-    headers = {
-        "X-Vault-Token": token
-    }
+    headers = get_vault_headers(token)
     url = f"{VAULT_URL}/v1/{service}/{key}"
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
@@ -624,9 +651,7 @@ def delete_service_store_secret(service=SERVICE_NAME, key=None, role_id=None, se
     if key is None:
         return {"error": "no key specified"}, 400
 
-    headers = {
-        "X-Vault-Token": token
-    }
+    headers = get_vault_headers(token)
     url = f"{VAULT_URL}/v1/{service}/{key}"
     response = requests.delete(url, headers=headers)
     return response.text, response.status_code
@@ -639,16 +664,13 @@ def create_service_token(service_uuid):
     # this will get us a fresh approle token for this service
     role_id = None
     try:
-        with open(VERIFY_ROLE_ID_FILE) as f:
-            role_id = f.read().strip()
+        role_id = get_secret_file_value_or_env(VERIFY_ROLE_ID_FILE, "VERIFY_ROLE_ID")
     except Exception as e:
         raise AuthzError(str(e))
 
     token = get_vault_token_for_service("verify", role_id=role_id)
 
-    headers = {
-        "X-Vault-Token": token
-    }
+    headers = get_vault_headers(token)
 
     # create the random service-token:
     url = f"{VAULT_URL}/v1/cubbyhole/{token}"
