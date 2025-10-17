@@ -1,0 +1,55 @@
+name: (PR) Build, Publish, and Cleanup PR Docker Image
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  build-and-push:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PR number
+        id: pr
+        run: echo "PR_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository }}/authz:pr-${PR_NUMBER}
+          echo "Building image: $IMAGE_NAME"
+          docker build -t $IMAGE_NAME .
+
+      - name: Push Docker image
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository }}/authz:pr-${PR_NUMBER}
+          echo "Pushing image: $IMAGE_NAME"
+          docker push $IMAGE_NAME
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete Docker image from GHCR
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository }}/authz:pr-${{ github.event.pull_request.number }}
+          echo "Deleting image: $IMAGE_NAME"
+          curl -X DELETE \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://ghcr.io/v2/${{ github.repository }}/authz/manifests/pr-${{ github.event.pull_request.number }}"
