@@ -17,6 +17,8 @@ test := "test" if {
 
 else := "opa"
 
+# TODO: need to pass the 'X-Vault-Namespace' header to the vault requests
+
 # paths are the paths authorized for methods, used by permissions.rego
 paths := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "paths"]), "headers": {"X-Vault-Token": vault_token}}).body.data.paths
 
