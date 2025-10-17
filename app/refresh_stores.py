@@ -20,7 +20,7 @@ try:
         print(response.text)
 
         # Test Role-ID
-        test_role_id = get_vault_token_for_service("/home/pcgl/test-roleid", "TEST_ROLEID")
+        test_role_id = get_secret_file_value_or_env("/home/pcgl/test-roleid", "TEST_ROLEID")
         payload = f"{{\"token\": \"{get_vault_token_for_service("test", role_id=test_role_id)}\"}}"
         response = requests.put(url=f"{os.getenv('OPA_URL')}/v1/data/test_token", headers=headers, data=payload)
         print(response.text)
