@@ -5,19 +5,19 @@ set -Euo pipefail
 
 if [[ -f "/app/initial_setup" ]]; then
 
-    cp /app/permissions_engine /permissions_engine
-    chmod 777 /permissions_engine
+    cp /app/permissions-engine /permissions-engine
+    chmod 777 /permissions-engine
 
     mkdir /app/data
     chmod 777 /app/data
 
     # set up our default values
-    sed -i s@PCGL_ADMIN_GROUP@$PCGL_ADMIN_GROUP@ /permissions_engine/calculate.rego
+    sed -i s@PCGL_ADMIN_GROUP@$PCGL_ADMIN_GROUP@ /permissions-engine/calculate.rego
 
     token=$(dd if=/dev/urandom bs=1 count=16 2>/dev/null | base64 | tr -d '\n\r+' | sed s/[^A-Za-z0-9]//g)
-    echo { \"opa_secret\": \"$token\" } > /permissions_engine/opa_secret.json
+    echo { \"opa_secret\": \"$token\" } > /permissions-engine/opa_secret.json
     # set up vault URL
-    sed -i s@VAULT_URL@$VAULT_URL@ /permissions_engine/vault.rego
+    sed -i s@VAULT_URL@$VAULT_URL@ /permissions-engine/vault.rego
 
     echo "initializing stores"
     python3 /app/initialize_vault_store.py
