@@ -5,7 +5,7 @@ set -Euo pipefail
 
 if [[ -f "/app/initial_setup" ]]; then
 
-    cp -r /app/permissions-engine /permissions-engine
+    cp -r /app/permissions_engine /permissions-engine
     chmod 777 /permissions-engine
 
     mkdir /app/data
