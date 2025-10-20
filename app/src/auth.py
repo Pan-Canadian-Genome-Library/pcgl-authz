@@ -573,12 +573,11 @@ def get_vault_token_for_service(service=SERVICE_NAME, approle_token=None, role_i
     if secret_id is None:
         url = f"{VAULT_URL}/v1/auth/approle/role/{service}/secret-id"
         headers = get_vault_headers(token=approle_token)
-        print(headers)  # TODO: for debug, rm
         response = requests.post(url=url, headers=headers)
         if response.status_code == 200:
             secret_id = response.json()["data"]["secret_id"]
         else:
-            raise AuthzError(f"secret_id ({service}): {response.text}")
+            raise AuthzError(f"secret_id: {response.text}")
 
         # swap the role_id and service_id for a token
         data = {
