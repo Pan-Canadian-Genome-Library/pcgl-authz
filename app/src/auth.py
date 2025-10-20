@@ -577,7 +577,7 @@ def get_vault_token_for_service(service=SERVICE_NAME, approle_token=None, role_i
         if response.status_code == 200:
             secret_id = response.json()["data"]["secret_id"]
         else:
-            raise AuthzError(f"secret_id: {response.text}")
+            raise AuthzError(f"secret_id ({service}): {response.text}")
 
         # swap the role_id and service_id for a token
         data = {
