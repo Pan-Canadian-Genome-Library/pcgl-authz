@@ -5,7 +5,10 @@ export VAULT_APPROLE_TOKEN=$(cat /vault/config/approle-token)
 
 
 echo "renewing approle token"
-curl --request POST --header "X-Vault-Token: ${VAULT_APPROLE_TOKEN}" $VAULT_URL/v1/auth/token/renew-self > finish.json
+curl --request POST \
+    --header "X-Vault-Token: ${VAULT_APPROLE_TOKEN}" \
+    --header "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
+    $VAULT_URL/v1/auth/token/renew-self > finish.json
 cat finish.json | jq
 grep "error" finish.json
 if [[ $? -eq 0 ]]; then
