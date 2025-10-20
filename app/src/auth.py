@@ -585,7 +585,7 @@ def get_vault_token_for_service(service=SERVICE_NAME, approle_token=None, role_i
             "secret_id": secret_id
         }
         url = f"{VAULT_URL}/v1/auth/approle/login"
-        response = requests.post(url, json=data)
+        response = requests.post(url, json=data, headers=get_vault_namespace_header())
         if response.status_code == 200:
             return response.json()["auth"]["client_token"]
         else:
