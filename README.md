@@ -32,7 +32,7 @@ curl -X "POST" "https://cilogon.org/oauth2/token" \
 
 3. Use the access token in an Authorization header for any of the API calls:
 ```
-curl "http://localhost:1235/authz/group/admin" \
+curl "http://localhost:1235/group/admin" \
  -H 'Authorization: Bearer <token>'
 ```
 
