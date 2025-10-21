@@ -20,17 +20,19 @@ else := "opa"
 # Headers for Vault KV store (vault_token)
 vault_headers := h {
 	h := {"X-Vault-Token": vault_token}
-	ns := "VAULT_NAMESPACE"
-	ns != ""
-	h["X-Vault-Namespace"] = ns
+	ns := getenv("VAULT_NAMESPACE")
+	if ns != "" {
+		h["X-Vault-Namespace"] = ns
+	}
 }
 
 # Headers for Vault Cubbyhole (input.token)
 vault_service_headers := h {
 	h := {"X-Vault-Token": input.token}
-	ns := "VAULT_NAMESPACE"
-	ns != ""
-	h["X-Vault-Namespace"] = ns
+	ns := getenv("VAULT_NAMESPACE")
+	if ns != "" {
+		h["X-Vault-Namespace"] = ns
+	}
 }
 
 # paths are the paths authorized for methods, used by permissions.rego
