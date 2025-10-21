@@ -17,7 +17,7 @@ test := "test" if {
 
 else := "opa"
 
-ns := getenv("VAULT_NAMESPACE")
+ns := "VAULT_NAMESPACE"
 
 vault_headers := {"X-Vault-Token": vault_token} if {
     ns == ""

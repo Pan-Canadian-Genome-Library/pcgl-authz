@@ -18,6 +18,7 @@ if [[ -f "/app/initial_setup" ]]; then
     echo { \"opa_secret\": \"$token\" } > /permissions-engine/opa_secret.json
     # set up vault URL and namespace
     sed -i s@VAULT_URL@$VAULT_URL@ /permissions-engine/vault.rego
+    sed -i s@VAULT_NAMESPACE@$VAULT_NAMESPACE@ /permissions-engine/vault.rego
 
     echo "initializing stores"
     python3 /app/initialize_vault_store.py
