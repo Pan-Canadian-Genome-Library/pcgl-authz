@@ -51,8 +51,8 @@ jobs:
     steps:
       - name: Delete Docker image from GHCR
         run: |
-          IMAGE_NAME=ghcr.io/${{GITHUB_REPOSITORY,,}}/authz:pr-${{ github.event.pull_request.number }}
+          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}/authz:pr-${{ github.event.pull_request.number }}"
           echo "Deleting image: $IMAGE_NAME"
           curl -X DELETE \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://ghcr.io/v2/${{GITHUB_REPOSITORY,,}}/authz/manifests/pr-${{ github.event.pull_request.number }}"
+            "https://ghcr.io/${GITHUB_REPOSITORY,,}/authz/manifests/pr-${{ github.event.pull_request.number }}"
