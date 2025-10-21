@@ -19,19 +19,19 @@ else := "opa"
 
 ns := getenv("VAULT_NAMESPACE")
 
-vault_headers := {"X-Vault-Token": vault_token} {
+vault_headers := {"X-Vault-Token": vault_token} if {
     ns == ""
 }
 
-vault_headers := {"X-Vault-Token": vault_token, "X-Vault-Namespace": ns} {
+vault_headers := {"X-Vault-Token": vault_token, "X-Vault-Namespace": ns} if {
     ns != ""
 }
 
-vault_service_headers := {"X-Vault-Token": input.token} {
+vault_service_headers := {"X-Vault-Token": input.token} if {
     ns == ""
 }
 
-vault_service_headers := {"X-Vault-Token": input.token, "X-Vault-Namespace": ns} {
+vault_service_headers := {"X-Vault-Token": input.token, "X-Vault-Namespace": ns} if {
     ns != ""
 }
 
