@@ -17,22 +17,36 @@ test := "test" if {
 
 else := "opa"
 
-# TODO: need to pass the 'X-Vault-Namespace' header to the vault requests
+# Headers for Vault KV store (vault_token)
+vault_headers := h {
+	h := {"X-Vault-Token": vault_token}
+	ns := getenv("VAULT_NAMESPACE")
+	ns != ""
+	h["X-Vault-Namespace"] = ns
+}
+
+# Headers for Vault Cubbyhole (input.token)
+vault_service_headers := h {
+	h := {"X-Vault-Token": input.token}
+	ns := getenv("VAULT_NAMESPACE")
+	ns != ""
+	h["X-Vault-Namespace"] = ns
+}
 
 # paths are the paths authorized for methods, used by permissions.rego
-paths := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "paths"]), "headers": {"X-Vault-Token": vault_token}}).body.data.paths
+paths := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "paths"]), "headers": vault_headers}).body.data.paths
 
 # groups are site-wide authorizations, used by permissions.rego and authz.rego
-groups := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "groups"]), "headers": {"X-Vault-Token": vault_token}}).body.data
+groups := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "groups"]), "headers": vault_headers}).body.data
 
-all_studies := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "studies"]), "headers": {"X-Vault-Token": vault_token}}).body.data.studies
+all_studies := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "studies"]), "headers": vault_headers}).body.data.studies
 
 study_auths[p] := study if {
 	some p in all_studies
-	study := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "studies", p]), "headers": {"X-Vault-Token": vault_token}}).body.data[p]
+	study := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "studies", p]), "headers": vault_headers}).body.data[p]
 }
 
-user_index := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "users/index"]), "headers": {"X-Vault-Token": vault_token}, "raise_error": false}).body.data
+user_index := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "users/index"]), "headers": vault_headers, "raise_error": false}).body.data
 
 user_id := user_index[data.idp.user_sub] if {
 	not input.body.user_pcglid
@@ -41,7 +55,7 @@ user_id := user_index[data.idp.user_sub] if {
 else := user_index[input.body.user_pcglid]
 
 # check to see if the user is authorized for any other studies via DACs
-user_auth := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "users", user_id]), "headers": {"X-Vault-Token": vault_token}, "raise_error": false})
+user_auth := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "users", user_id]), "headers": vault_headers, "raise_error": false})
 
 user_pcglid := user_auth.body.data.pcglid
 
@@ -53,4 +67,4 @@ user_studies := user_auth.body.data.study_authorizations if {
 
 default service := ""
 # if there is a service associated with this token:
-service := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/cubbyhole", input.token]), "headers": {"X-Vault-Token": input.token}}).body.data.service
+service := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1/cubbyhole", input.token]), "headers": vault_service_headers}).body.data.service
