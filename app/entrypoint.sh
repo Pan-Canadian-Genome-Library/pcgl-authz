@@ -16,8 +16,9 @@ if [[ -f "/app/initial_setup" ]]; then
 
     token=$(dd if=/dev/urandom bs=1 count=16 2>/dev/null | base64 | tr -d '\n\r+' | sed s/[^A-Za-z0-9]//g)
     echo { \"opa_secret\": \"$token\" } > /permissions-engine/opa_secret.json
-    # set up vault URL
+    # set up vault URL and namespace
     sed -i s@VAULT_URL@$VAULT_URL@ /permissions-engine/vault.rego
+    sed -i s@VAULT_NAMESPACE@$VAULT_NAMESPACE@ /permissions-engine/vault.rego
 
     echo "initializing stores"
     python3 /app/initialize_vault_store.py

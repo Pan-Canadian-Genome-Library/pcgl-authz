@@ -20,7 +20,7 @@ else := "opa"
 # Headers for Vault KV store (vault_token)
 vault_headers := h {
 	h := {"X-Vault-Token": vault_token}
-	ns := getenv("VAULT_NAMESPACE")
+	ns := "VAULT_NAMESPACE"
 	ns != ""
 	h["X-Vault-Namespace"] = ns
 }
@@ -28,7 +28,7 @@ vault_headers := h {
 # Headers for Vault Cubbyhole (input.token)
 vault_service_headers := h {
 	h := {"X-Vault-Token": input.token}
-	ns := getenv("VAULT_NAMESPACE")
+	ns := "VAULT_NAMESPACE"
 	ns != ""
 	h["X-Vault-Namespace"] = ns
 }
