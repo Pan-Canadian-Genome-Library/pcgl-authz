@@ -18,18 +18,16 @@ test := "test" if {
 else := "opa"
 
 # Headers for Vault KV store (vault_token)
-vault_headers := h {
+vault_headers := h if ns != "" else {"X-Vault-Token": vault_token} {
     h := {"X-Vault-Token": vault_token}
     ns := getenv("VAULT_NAMESPACE")
-    ns != ""
     h["X-Vault-Namespace"] = ns
 }
 
 # Headers for Vault Cubbyhole (input.token)
-vault_service_headers := h {
+vault_service_headers := h if ns != "" else {"X-Vault-Token": input.token} {
     h := {"X-Vault-Token": input.token}
     ns := getenv("VAULT_NAMESPACE")
-    ns != ""
     h["X-Vault-Namespace"] = ns
 }
 
