@@ -19,11 +19,22 @@ else := "opa"
 
 ns := getenv("VAULT_NAMESPACE")
 
-# Headers for Vault KV store
-vault_headers := ({"X-Vault-Token": vault_token, "X-Vault-Namespace": ns}) if ns != "" else ({"X-Vault-Token": vault_token})
+vault_headers := {"X-Vault-Token": vault_token} {
+    ns == ""
+}
 
-# Headers for Vault Cubbyhole
-vault_service_headers := ({"X-Vault-Token": input.token, "X-Vault-Namespace": ns}) if ns != "" else ({"X-Vault-Token": input.token})
+vault_headers := {"X-Vault-Token": vault_token, "X-Vault-Namespace": ns} {
+    ns != ""
+}
+
+vault_service_headers := {"X-Vault-Token": input.token} {
+    ns == ""
+}
+
+vault_service_headers := {"X-Vault-Token": input.token, "X-Vault-Namespace": ns} {
+    ns != ""
+}
+
 
 # paths are the paths authorized for methods, used by permissions.rego
 paths := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "paths"]), "headers": vault_headers}).body.data.paths
