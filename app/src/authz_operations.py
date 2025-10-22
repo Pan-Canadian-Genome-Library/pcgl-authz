@@ -37,7 +37,7 @@ def list_group(group_id):
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"authz/group/{group_id}", service=service):
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"group/{group_id}", service=service):
             return auth.list_group()
         return {"error": "User is not authorized to list groups"}, 403
     except auth.UserTokenError as e:
@@ -179,7 +179,7 @@ def list_study_authorizations():
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"authz/study"):
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path="study"):
             response, status_code = auth.list_studies(service=service)
             return response, status_code
         return {"error": "User is not authorized to list studies"}, 403
