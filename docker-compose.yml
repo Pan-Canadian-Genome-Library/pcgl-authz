@@ -18,6 +18,7 @@ services:
     environment:
       OPA_URL: http://opa:8181
       VAULT_URL: http://vault:8200
+      VAULT_NAMESPACE: ${VAULT_NAMESPACE}
       SERVICE_NAME: opa
       PCGL_USER_KEY: email
       PCGL_ISSUER: ${PCGL_ISSUER}
