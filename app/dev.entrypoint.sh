@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Container entrypoint for local development with root access to a local Vault server.
+
 set -Euo pipefail
 
 
@@ -28,6 +30,19 @@ if [[ -f "/app/initial_setup" ]]; then
     else
         echo "!!!!!! INITIALIZATION FAILED, TRY AGAIN !!!!!!"
     fi
+
+else
+    sleep 10
+    # unseal vault
+    KEY=$(head -n 2 /app/config/keys.txt | tail -n 1)
+    echo '{ "key": "'$KEY'" }' > payload.json
+    curl --request POST --data @payload.json http://vault:8200/v1/sys/unseal
+    KEY=$(head -n 3 /app/config/keys.txt | tail -n 1)
+    echo '{ "key": "'$KEY'" }' > payload.json
+    curl --request POST --data @payload.json http://vault:8200/v1/sys/unseal
+    KEY=$(head -n 4 /app/config/keys.txt | tail -n 1)
+    echo '{ "key": "'$KEY'" }' > payload.json
+    curl --request POST --data @payload.json http://vault:8200/v1/sys/unseal
 fi
 
 # make sure that our vault stores have the latest values

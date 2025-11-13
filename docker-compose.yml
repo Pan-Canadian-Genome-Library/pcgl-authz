@@ -13,11 +13,12 @@ services:
     ports:
       - 1235:1235
     volumes:
-      - auth-data:/app
+      - auth-data:/permissions_engine
       - vault-data:/vault
     environment:
       OPA_URL: http://opa:8181
       VAULT_URL: http://vault:8200
+      VAULT_NAMESPACE: ${VAULT_NAMESPACE}
       SERVICE_NAME: opa
       PCGL_USER_KEY: email
       PCGL_ISSUER: ${PCGL_ISSUER}
@@ -33,7 +34,7 @@ services:
       HOST: http://localhost:1235
     entrypoint:
       - "bash"
-      - "/app/entrypoint.sh"
+      - "/app/dev.entrypoint.sh"
 
   opa:
     image: openpolicyagent/opa:1.1.0-static
@@ -42,7 +43,7 @@ services:
     labels:
       - "pcgl=opa"
     volumes:
-      - auth-data:/app
+      - auth-data:/permissions_engine
     command:
       - "run"
       - "--set=decision_logs.console=true"
@@ -51,7 +52,7 @@ services:
       - "--authorization=basic"
       - "-s"
       - "--addr=0.0.0.0:8181"
-      - "app/permissions_engine/"
+      - "/permissions_engine/"
 
   vault:
     image: hashicorp/vault:1.13
