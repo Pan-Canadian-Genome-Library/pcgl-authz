@@ -29,8 +29,8 @@ RUN chmod 777 /vault/data
 WORKDIR /app/
 RUN chown -R pcgl:pcgl /app
 
-RUN mkdir -p /permissions-engine
-RUN chown -R pcgl:pcgl /permissions-engine
+RUN mkdir -p /permissions_engine
+RUN chown -R pcgl:pcgl /permissions_engine
 
 USER pcgl
 

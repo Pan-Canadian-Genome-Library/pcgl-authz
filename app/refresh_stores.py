@@ -6,7 +6,7 @@ import requests
 
 # get the token for the opa store
 try:
-    with open("/permissions-engine/opa_secret.json") as f:
+    with open("/permissions_engine/opa_secret.json") as f:
         opa_json = json.load(f)
         headers = {
             "X-Opa": opa_json["opa_secret"],
