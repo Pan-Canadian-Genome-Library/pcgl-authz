@@ -131,7 +131,7 @@ def get_secret_file_value_or_env(file_path: str, env_var: str) -> str:
 
 
 def get_vault_namespace_header() -> dict:
-    if VAULT_NAMESPACE:
+    if VAULT_NAMESPACE is not None and VAULT_NAMESPACE != "":
         return {
             "X-Vault-Namespace": VAULT_NAMESPACE
         }
