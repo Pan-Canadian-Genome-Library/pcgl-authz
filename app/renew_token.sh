@@ -7,7 +7,7 @@ curl --request POST \
     --header "X-Vault-Token: ${VAULT_APPROLE_TOKEN}" \
     --header "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
     $VAULT_URL/v1/auth/token/renew-self > finish.json
-cat finish.json | jq
+
 grep "error" finish.json
 if [[ $? -eq 0 ]]; then
     echo "Approle token renewal error:"
