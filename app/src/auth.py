@@ -744,6 +744,8 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
     # either force re-create user or
     # this is a new user: set up the user and the index entry
     user = {"study_authorizations": {}, "comanage_id": comanage_id}
+    if "study_authorizations" in response:
+        user["study_authorizations"] = response["study_authorizations"]
 
     # set up identifiers
     response = requests.get(f"{PCGL_API_URL}/registry/identifiers.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
