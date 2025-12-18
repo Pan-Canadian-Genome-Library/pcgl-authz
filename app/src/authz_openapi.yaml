@@ -358,14 +358,14 @@ components:
     ServiceId:
       in: header
       name: X-Service-Id
-      required: true
+      required: false
       schema:
         type: string
       description: ID of a registered service
     ServiceToken:
       in: header
       name: X-Service-Token
-      required: true
+      required: false
       schema:
         type: string
       description: service token created for the service specified by X-Service-Id

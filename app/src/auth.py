@@ -190,7 +190,7 @@ def get_opa_permissions(request=None, user_pcglid=None, method=None, path=None, 
         permissions = response.json()["result"]
 
         # if this request is to check for site admin, just return here
-        if assume_site_admin:
+        if assume_site_admin or is_site_admin(request):
             return permissions, 200
 
         # check to see if the request has the needed headers:
@@ -240,6 +240,11 @@ def is_site_admin(request):
     Is the user associated with the token a site admin?
     Returns boolean.
     """
+    # first check to see if the PCGL_ADMIN_GROUP is in the token's groups
+    if "token_info" in context and "groups" in context["token_info"]:
+        if PCGL_ADMIN_GROUP in context["token_info"]["groups"]:
+            return True
+
     response, status_code = get_opa_permissions(request=request, assume_site_admin=True)
 
     if status_code == 200:
