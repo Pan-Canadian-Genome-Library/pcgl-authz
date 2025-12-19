@@ -162,7 +162,7 @@ def test_service_token(service_uuid):
     # if there is no service provided, this won't work
     response = requests.get(f"{HOST}/user/me", headers=headers)
     print(response.text)
-    assert response.status_code == 400
+    assert response.status_code == 403
 
     headers["X-Service-Id"] = "test"
     headers["X-Service-Token"] = get_service_token(service_uuid)
@@ -255,6 +255,19 @@ def test_get_users(service_uuid, users, user):
     print(response.text)
     assert "userinfo" in response.json()
     assert response.json()["userinfo"]["pcgl_id"] == users[user]["pcglid"]
+
+
+def test_admin_user(users):
+    headers = {
+        "Authorization": f"Bearer admin",
+        "X-Test-Mode": os.getenv("TEST_KEY")
+    }
+
+    # get their own info
+    response = requests.get(f"{HOST}/user/me", headers=headers)
+    print(response.text)
+    assert "userinfo" in response.json()
+    assert response.json()["userinfo"]["pcgl_id"] == users["admin"]["pcglid"]
 
 
 def get_dacs():
