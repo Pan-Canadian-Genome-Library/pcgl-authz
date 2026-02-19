@@ -185,6 +185,21 @@ paths:
         schema:
           type: string
         required: true
+    post:
+      summary: Add a DAC authorization for a study for a group of users
+      description: Authorize a study for a group of users (or update a study auth for a set of users)
+      operationId: authz_operations.authorize_study_for_users
+      security:
+      - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/StudyDACAuthorizationRequest'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
     get:
       summary: Get authorization information for a study
       description: Get authorization information for a study
@@ -391,6 +406,11 @@ components:
         'application/json':
           schema:
             $ref: "#/components/schemas/StudyAuthorization"
+    StudyDACAuthorizationRequest:
+      content:
+        'application/json':
+          schema:
+            $ref: "#/components/schemas/StudyDACAuthorization"
     DACAuthorizationRequest:
       content:
         'application/json':
@@ -489,6 +509,22 @@ components:
           type: string
       required:
         - study_id
+        - start_date
+        - end_date
+    StudyDACAuthorization:
+      type: object
+      description: a DAC approval for multiple users for the given study
+      properties:
+        user_emails:
+          type: array
+          items:
+            type: string
+        start_date:
+          type: string
+        end_date:
+          type: string
+      required:
+        - user_emails
         - start_date
         - end_date
     Action:

@@ -545,6 +545,7 @@ def list_authz_for_user(pcgl_id, service=SERVICE_NAME):
         if status_code == 200:
             result["groups"] = groups
         return result, status_code
+    return user_dict, status_code
 
 
 

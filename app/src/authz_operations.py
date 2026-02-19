@@ -210,6 +210,60 @@ async def add_study_authorization():
 
 
 @app.route('/study/<path:study_id>')
+async def authorize_study_for_users(study_id):
+    study_dict = await connexion.request.json()
+    study_dict["study_id"] = study_id
+    service = "opa"
+    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service = "test"
+    try:
+        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study/{study_id}", study=study_dict["study_id"]):
+            # we need to check to see if the study even exists in the system
+            all_studies, status_code = auth.list_studies(service=service)
+            if status_code != 200:
+                return all_studies, status_code
+            if study_dict["study_id"] not in all_studies:
+                return {"error": f"Study {study_dict['study_id']} does not exist in {all_studies}"}
+
+            # for each user, look up user by email:
+            user_emails = list(set(study_dict["user_emails"]))
+            result = {"success": [], "error": []}
+            study_auth = {
+                "study_id": study_dict["study_id"],
+                "start_date": study_dict["start_date"],
+                "end_date": study_dict["end_date"]
+            }
+            for user_email in user_emails:
+                user_dict, status_code = auth.lookup_user_by_email(user_email)
+                if status_code == 404:
+                    # create a temp user
+                    user_dict = {"study_authorizations": {}, "id": user_email}
+                    user_dict["study_authorizations"][study_dict["study_id"]] = study_auth
+                    response, status_code = auth.write_user(user_dict, service=service)
+                    if status_code == 200:
+                        result["success"].append(user_email)
+                    else:
+                        result["error"].append(f"failed to write auth for {user_email}: {response}")
+                else:
+                    # the result from lookup_user_by_email is an array, so grab the first thing:
+                    user_dict = user_dict[0]
+                    user_dict["study_authorizations"][study_dict["study_id"]] = study_auth
+                    response, status_code = auth.write_user(user_dict, service=service)
+                    if status_code == 200:
+                        result["success"].append(user_email)
+                    else:
+                        result["error"].append(f"failed to write auth for {user_email}")
+            return result, 200
+        return {"error": "User is not authorized to authorize studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
+    # except Exception as e:
+    #     return {"error": f"{type(e)} {str(e)}"}, 500
+
+
+@app.route('/study/<path:study_id>')
 def get_study_authorization(study_id):
     service = "opa"
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
@@ -356,7 +410,7 @@ def lookup_user(email=None):
                     # only add users that have a pcgl id:
                     if "pcglid" in user:
                         result.append(user["pcglid"])
-            return result, status_code
+            return {"result": result}, status_code
         return {"error": "User is not authorized to look up users"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
