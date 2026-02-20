@@ -545,6 +545,7 @@ def list_authz_for_user(pcgl_id, service=SERVICE_NAME):
         if status_code == 200:
             result["groups"] = groups
         return result, status_code
+    return user_dict, status_code
 
 
 
@@ -765,6 +766,12 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
         for email in response.json()["EmailAddresses"]:
             if email["Mail"] not in emails and email["Verified"]:
                 emails.append({"address": email["Mail"], "type": email["Type"]})
+                # see if we have any DAC auths for this email address:
+                temp_user, status_code = get_service_store_secret(service, key=f"users/{email["Mail"]}")
+                if status_code == 200:
+                    for auth in temp_user["study_authorizations"]:
+                        user["study_authorizations"][auth] = temp_user["study_authorizations"][auth]
+                    delete_service_store_secret(service, key=f"users/{email["Mail"]}")
     user["emails"] = emails
 
     set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user))
