@@ -448,6 +448,12 @@ async def reload_comanage():
         return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
-    result, status_code = auth.reload_comanage()
-    print(result)
-    return result, status_code
+
+    try:
+        open("/app/reload", "x")
+    except FileExistsError:
+        pass
+    except Exception as e:
+        return {"error": f"couldn't reload: {type(e)} {str(e)}"}, 500
+
+    return {"status": "reloading: should be complete in a minute or two"}, 200

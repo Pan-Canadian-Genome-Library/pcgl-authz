@@ -48,6 +48,8 @@ fi
 # make sure that our vault stores have the latest values
 python3 /app/refresh_stores.py
 
+# spin up daemon process
+bash /app/daemon.sh &
 
 # start server
 cd /app/src
