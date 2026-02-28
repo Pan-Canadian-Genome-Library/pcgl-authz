@@ -245,14 +245,14 @@ async def authorize_study_for_users(study_id):
                     else:
                         result["error"].append(f"failed to write auth for {user_email}: {response}")
                 else:
-                    # the result from lookup_user_by_email is an array, so grab the first thing:
-                    user_dict = user_dict[0]
-                    user_dict["study_authorizations"][study_dict["study_id"]] = study_auth
-                    response, status_code = auth.write_user(user_dict, service=service)
-                    if status_code == 200:
-                        result["success"].append(user_email)
-                    else:
-                        result["error"].append(f"failed to write auth for {user_email}")
+                    # the result from lookup_user_by_email is an array:
+                    for pcgl_user in user_dict:
+                        pcgl_user["study_authorizations"][study_dict["study_id"]] = study_auth
+                        response, status_code = auth.write_user(pcgl_user, service=service)
+                        if status_code == 200:
+                            result["success"].append(user_email)
+                        else:
+                            result["error"].append(f"failed to write auth for {user_email}")
             return result, 200
         return {"error": "User is not authorized to authorize studies"}, 403
     except auth.UserTokenError as e:

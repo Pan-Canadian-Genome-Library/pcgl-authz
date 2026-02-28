@@ -892,4 +892,37 @@ def reload_comanage(service=SERVICE_NAME):
             result.append(get_user_record(member, force=True, service=service))
     except Exception as e:
         return {"error": f"failed to save users: {type(e)} {str(e)}"}, status_code
-    return {"message": result}, 200
+
+    # remove users no longer present:
+    # get all of the users
+    cleanup = []
+    users_index, status_code = get_service_store_secret(service, key="users/index")
+    new_index = {}
+    if status_code == 200:
+        for key in users_index:
+            comanage_ids = users_index[key]
+            # in case the value is not a list, make it one so that it's easier to work with
+            if "list" not in str(type(comanage_ids)):
+                comanage_id = comanage_ids
+                if comanage_id not in comanage_groups["members"]:
+                    response, status_code = delete_service_store_secret(service, key=f"users/{comanage_id}")
+                    cleanup.append(f"deleted user {comanage_id}: {status_code}")
+                else:
+                    new_index[key] = comanage_id
+            else:
+                valid_ids = []
+                for comanage_id in comanage_ids:
+                    if comanage_id not in comanage_groups["members"]:
+                        response, status_code = delete_service_store_secret(service, key=f"users/{comanage_id}")
+                        cleanup.append(f"deleted user {comanage_id}: {status_code}")
+                    else:
+                        valid_ids.append(comanage_id)
+                if len(valid_ids) > 0:
+                    new_index[key] = valid_ids
+                else:
+                    cleanup.append(f"deleted key {key}")
+
+    response, status_code = set_service_store_secret(service, key="users/index", value=json.dumps(users_index))
+    cleanup.append(f"index stored: {status_code}")
+
+    return {"message": result, "cleanup": cleanup}, 200
