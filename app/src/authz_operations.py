@@ -27,6 +27,22 @@ def get_service_info():
     }
 
 
+def healthcheck():
+    service = "opa"
+    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service = "test"
+    try:
+        user_index, status_code = auth.get_service_store_secret(service, key=f"users/index")
+        if status_code != 200 or len(user_index) == 0:
+            raise Exception("vault failure: couldn't get user index")
+        groups, status_code = auth.get_comanage_groups(service=service)
+        if status_code != 200 or len(groups) == 0:
+            raise Exception("comanage failure: couldn't list groups")
+    except Exception as e:
+        return {"result": "unhealthy", "reason": str(e)}, 400
+    return {"result": "healthy"}, 200
+
+
 ####
 # Groups
 ####

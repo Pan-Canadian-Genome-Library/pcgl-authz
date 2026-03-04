@@ -19,6 +19,25 @@ paths:
             application/json:
               schema:
                 type: object
+  /healthcheck:
+    get:
+      summary: Report health status of service
+      description: Report health status of service
+      operationId: authz_operations.healthcheck
+      responses:
+        200:
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+        400:
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+
   /group/{group_id}:
     parameters:
       - in: path
