@@ -74,7 +74,7 @@ def handle_token(token, request=None):
         if response.status_code == 200:
             return response.json()
         elif response.status_code < 500:
-            raise connexion.exceptions.Unauthorized(detail=str(e))
+            raise connexion.exceptions.Unauthorized(detail=f"bad oauth response: {response.status_code} {response.text}")
         else:
             print(f"auth failure: {response.status_code} {response.text}")
             raise connexion.exceptions.NonConformingResponse(detail=f"auth failure: {response.status_code} {response.text}")
