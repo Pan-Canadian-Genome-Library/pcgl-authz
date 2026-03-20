@@ -73,10 +73,13 @@ def handle_token(token, request=None):
 
         if response.status_code == 200:
             return response.json()
+        elif response.status_code < 500:
+            raise connexion.exceptions.Unauthorized(detail=f"bad oauth response: {response.status_code} {response.text}")
+        else:
+            print(f"auth failure: {response.status_code} {response.text}")
+            raise connexion.exceptions.NonConformingResponse(detail=f"auth failure: {response.status_code} {response.text}")
     except NoServiceFoundError as e:
-        raise connexion.exceptions.Forbidden(str(e))
-    except Exception as e:
-        raise connexion.exceptions.Unauthorized(str(e))
+        raise connexion.exceptions.Forbidden(detail=str(e))
 
 
 def get_auth_token(request, token=None):
@@ -110,9 +113,9 @@ def exchange_refresh_token(refresh_token, client_id=PCGL_CLIENT_ID, client_secre
     response = requests.post(f"{PCGL_ISSUER}/oauth2/token", data=payload)
     if response.status_code == 200:
         return response.json()
-    if response.status_code == 401:
+    if response.status_code < 500:
         raise UserTokenError(response.text)
-    raise AuthzError(response.text)
+    raise connexion.exceptions.NonConformingResponse(detail=response.text)
 
 
 def get_secret_file_value_or_env(file_path: str, env_var: str) -> str:
