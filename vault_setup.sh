@@ -8,14 +8,14 @@ PCGL_DEBUG_MODE=1
 # make sure we have all the env vars:
 source secrets.sh
 
-vault=$(docker ps -a --format "{{.Names}}" | grep pcgl-authz_vault_1 | awk '{print $1}')
+bao=$(docker ps -a --format "{{.Names}}" | grep pcgl-authz_vault_1 | awk '{print $1}')
 flask=$(docker ps -a --format "{{.Names}}" | grep pcgl-authz_flask_1 | awk '{print $1}')
-docker cp app/vault-config.json $vault:/vault/config/
+docker cp app/vault-config.json $bao:/vault/config/
 
 # check to see if we need to restore a backup before initializing a fresh Vault:
 if [[ -f "tmp/vault/restore.tar.gz" ]]; then
   echo ">> restoring vault from backup"
-  docker stop $vault
+  docker stop $bao
   pwd=$(pwd)
   cd tmp/vault
   tar -xzf $pwd/tmp/vault/restore.tar.gz
@@ -28,10 +28,10 @@ if [[ -f "tmp/vault/restore.tar.gz" ]]; then
   mv tmp/vault/restore.tar.gz tmp/vault/restored.tar.gz
 fi
 
-# if vault isn't started, start it:
-docker restart $vault
+# if bao isn't started, start it:
+docker restart $bao
 
-echo ">> waiting for vault to start"
+echo ">> waiting for bao to start"
 docker ps --format "{{.Names}}" | grep vault_1
 while [ $? -ne 0 ]
 do
@@ -44,7 +44,7 @@ sleep 5
 mkdir -p tmp/vault
 
 # gather keys and login token
-stuff=$(docker exec $vault vault operator init) # | head -7 | rev | cut -d " " -f1 | rev)
+stuff=$(docker exec $bao bao operator init) # | head -7 | rev | cut -d " " -f1 | rev)
 if [[ $? -eq 0 ]]; then
   echo ">> initialized vault, saving keys"
 
@@ -71,7 +71,7 @@ if [[ $? -eq 0 ]]; then
   echo -e "${key_5}" >> tmp/vault/keys.txt
   echo -e "root: \n${key_root}" >> tmp/vault/keys.txt
 
-  docker cp tmp/vault/keys.txt $vault:/vault/config/
+  docker cp tmp/vault/keys.txt $bao:/vault/config/
 
 else
   echo ">> retrieving keys"
@@ -83,28 +83,28 @@ else
 fi
 echo $key_root
 echo ">> attempting to automatically unseal vault:"
-docker exec $vault sh -c "vault operator unseal ${key_1}"
-docker exec $vault sh -c "vault operator unseal ${key_2}"
-docker exec $vault sh -c "vault operator unseal ${key_3}"
+docker exec $bao sh -c "bao operator unseal ${key_1}"
+docker exec $bao sh -c "bao operator unseal ${key_2}"
+docker exec $bao sh -c "bao operator unseal ${key_3}"
 
 # login
 echo
 echo ">> logging in automatically -- " #copy and paste this: ${key_root}"
-docker exec $vault sh -c "vault login ${key_root}"
+docker exec $bao sh -c "bao login ${key_root}"
 
 # configuration
 # audit file
 # echo
 # echo ">> enabling audit file"
-# docker exec $vault sh -c "vault audit enable file file_path=/vault/vault-audit.log"
+# docker exec $bao sh -c "bao audit enable file file_path=/vault/vault-audit.log"
 
 # enable approle
 echo
 echo ">> enabling approle"
-docker exec $vault sh -c "vault auth enable approle"
+docker exec $bao sh -c "bao auth enable approle"
 
 echo ">> setting up approle policy"
-docker exec $vault sh -c "echo 'path \"auth/approle/role/*\" {capabilities = [\"read\", \"update\"]}' > approle-policy.hcl; vault policy write approle approle-policy.hcl"
+docker exec $bao sh -c "echo 'path \"auth/approle/role/*\" {capabilities = [\"read\", \"update\"]}' > approle-policy.hcl; bao policy write approle approle-policy.hcl"
 
 echo
 echo ">> setting up approle role"
@@ -123,5 +123,5 @@ echo
 echo ">> setting up approle token"
 echo "{\"policies\": [\"approle\"]}" > tmp/temp.json
 curl --request POST --header "X-Vault-Token: ${key_root}" --data @tmp/temp.json $VAULT_SERVICE_PUBLIC_URL/v1/auth/token/create/approle | jq '.auth.client_token' -r > tmp/vault/approle-token
-docker cp tmp/vault/approle-token $vault:/vault/config/approle-token
+docker cp tmp/vault/approle-token $bao:/vault/config/approle-token
 rm tmp/temp.json
