@@ -1,6 +1,7 @@
 volumes:
   auth-data:
   vault-data:
+  valkey-data:
 
 services:
   flask:
@@ -18,6 +19,8 @@ services:
     environment:
       OPA_URL: http://opa:8181
       VAULT_URL: http://vault:8200
+      VALKEY_URL: valkey
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
       VAULT_NAMESPACE: ${VAULT_NAMESPACE}
       SERVICE_NAME: opa
       PCGL_USER_KEY: email
@@ -88,3 +91,13 @@ services:
       - $PWD/caddy/sites:/srv
       - $PWD/caddy/data:/data
       - $PWD/caddy/config:/config
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    labels:
+     - "pcgl=valkey"
+    ports:
+      - 6379:6379
+    volumes:
+      - valkey-data:/valkey/data
+    command: valkey-server --requirepass ${VALKEY_PASSWORD}

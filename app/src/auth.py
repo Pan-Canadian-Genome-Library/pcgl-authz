@@ -4,6 +4,7 @@ import json
 import uuid
 from connexion.context import context
 import connexion
+import valkey
 
 
 ## Env vars for most auth methods:
@@ -13,6 +14,11 @@ VAULT_NAMESPACE = os.getenv("VAULT_NAMESPACE", "")
 SERVICE_NAME = os.getenv("SERVICE_NAME")
 APPROLE_TOKEN_FILE = os.getenv("APPROLE_TOKEN_FILE", "/home/pcgl/approle-token")
 VERIFY_ROLE_ID_FILE = "/home/pcgl/verify-roleid"
+VALKEY_URL = os.getenv('VALKEY_URL', "localhost")
+VALKEY_PORT = os.getenv('VALKEY_PORT', "6379")
+VALKEY_PASSWORD = os.getenv('VALKEY_PASSWORD', "")
+
+## PCGL-specific env vars
 PCGL_COID = os.getenv("PCGL_COID", "")
 PCGL_CORE_API_USER = os.getenv("PCGL_CORE_API_USER", "")
 PCGL_CORE_API_KEY = os.getenv("PCGL_CORE_API_KEY", "")
@@ -42,6 +48,7 @@ class UserTokenError(AuthzError):
 class UserServiceMismatchError(AuthzError):
     pass
 
+KV_CACHE = valkey.Valkey(host=VALKEY_URL, port=int(VALKEY_PORT), password=VALKEY_PASSWORD)
 
 def handle_token(token, request=None):
     try:
@@ -61,23 +68,34 @@ def handle_token(token, request=None):
             if "admin" in token:
                 token_info["groups"].append(PCGL_ADMIN_GROUP)
             return token_info
-        if "X-Service-Id" in request.headers:
-            service_dict, status_code = get_service(request.headers["X-Service-Id"], service=service)
-            if "token_type" in service_dict["authorization"] and service_dict["authorization"]["token_type"] == "refresh":
-                client_id = service_dict["authorization"]["client_id"]
-                client_secret = service_dict["authorization"]["client_secret"]
-                response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
-                access_token = response["access_token"]
 
-        response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
-
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code < 500:
-            raise connexion.exceptions.Unauthorized(detail=f"bad oauth response: {response.status_code} {response.text}")
+        # look the token up in the cache:
+        user_info = KV_CACHE.get(token)
+        expires_in = None
+        if user_info is not None:
+            return json.loads(user_info)
         else:
-            print(f"auth failure: {response.status_code} {response.text}")
-            raise connexion.exceptions.NonConformingResponse(detail=f"auth failure: {response.status_code} {response.text}")
+            if "X-Service-Id" in request.headers:
+                service_dict, status_code = get_service(request.headers["X-Service-Id"], service=service)
+                if "token_type" in service_dict["authorization"] and service_dict["authorization"]["token_type"] == "refresh":
+                    client_id = service_dict["authorization"]["client_id"]
+                    client_secret = service_dict["authorization"]["client_secret"]
+                    response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
+                    access_token = response["access_token"]
+                    expires_in = response["expires_in"]
+
+            response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
+
+            if response.status_code == 200:
+                # save the token in the cache
+                if expires_in is not None:
+                    x = KV_CACHE.set(token, json.dumps(response.json()), ex=expires_in)
+                return response.json()
+            elif response.status_code < 500:
+                raise connexion.exceptions.Unauthorized(detail=f"bad oauth response: {response.status_code} {response.text}")
+            else:
+                print(f"auth failure: {response.status_code} {response.text}")
+                raise connexion.exceptions.NonConformingResponse(detail=f"auth failure: {response.status_code} {response.text}")
     except NoServiceFoundError as e:
         raise connexion.exceptions.Forbidden(detail=str(e))
 
