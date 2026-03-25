@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-vault=$(docker ps -a --format "{{.Names}}" | grep vault_1 | awk '{print $1}')
+bao=$(docker ps -a --format "{{.Names}}" | grep vault_1 | awk '{print $1}')
 flask=$(docker ps -a --format "{{.Names}}" | grep flask_1 | awk '{print $1}')
 
 mkdir -p $(pwd)/tmp/vault/backup
-docker exec $vault vault auth disable approle/
-stop=$(docker stop $vault)
+docker exec $bao bao auth disable approle/
+stop=$(docker stop $bao)
 zip=$(docker exec -u root $flask bash -c "cd /vault; tar -cz data/ > backup.tar.gz")
 copy=$(docker cp $flask:/vault/backup.tar.gz $(pwd)/tmp/vault/backup/)
 
@@ -16,4 +16,4 @@ tar -cz backup > backup.tar.gz
 rm -R backup
 cd $pwd
 
-start=$(docker start $vault)
+start=$(docker start $bao)

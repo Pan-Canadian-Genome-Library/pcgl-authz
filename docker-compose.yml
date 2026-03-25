@@ -55,7 +55,7 @@ services:
       - "/permissions_engine/"
 
   vault:
-    image: hashicorp/vault:1.13
+    image: openbao/openbao:2.5
     labels:
      - "pcgl=vault"
     ports:
@@ -67,7 +67,7 @@ services:
       - VAULT_DISABLE_MLOCK=true
     cap_add:
       - IPC_LOCK
-    command: vault server -config=/vault/config/vault-config.json
+    command: bao server -config=/vault/config/vault-config.json
 
   # Comment this section out if reverse-proxy is not needed
   caddy:
