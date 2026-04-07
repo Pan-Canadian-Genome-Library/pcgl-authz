@@ -20,6 +20,7 @@ services:
       OPA_URL: http://opa:8181
       VAULT_URL: http://vault:8200
       VALKEY_URL: valkey
+      VALKEY_USER: ${VALKEY_USER}
       VALKEY_PASSWORD: ${VALKEY_PASSWORD}
       VAULT_NAMESPACE: ${VAULT_NAMESPACE}
       SERVICE_NAME: opa
@@ -100,4 +101,4 @@ services:
       - 6379:6379
     volumes:
       - valkey-data:/valkey/data
-    command: valkey-server --requirepass ${VALKEY_PASSWORD}
+    command: valkey-server --requirepass ${VALKEY_PASSWORD} --primaryuser ${VALKEY_USER}
