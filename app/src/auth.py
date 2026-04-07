@@ -16,6 +16,7 @@ APPROLE_TOKEN_FILE = os.getenv("APPROLE_TOKEN_FILE", "/home/pcgl/approle-token")
 VERIFY_ROLE_ID_FILE = "/home/pcgl/verify-roleid"
 VALKEY_URL = os.getenv('VALKEY_URL', "localhost")
 VALKEY_PORT = os.getenv('VALKEY_PORT', "6379")
+VALKEY_USER = os.getenv('VALKEY_USER', "default")
 VALKEY_PASSWORD = os.getenv('VALKEY_PASSWORD', "")
 
 ## PCGL-specific env vars
@@ -48,7 +49,7 @@ class UserTokenError(AuthzError):
 class UserServiceMismatchError(AuthzError):
     pass
 
-KV_CACHE = valkey.Valkey(host=VALKEY_URL, port=int(VALKEY_PORT), password=VALKEY_PASSWORD)
+KV_CACHE = valkey.Valkey(host=VALKEY_URL, port=int(VALKEY_PORT), username=VALKEY_USER, password=VALKEY_PASSWORD)
 
 def handle_token(token, request=None):
     try:
