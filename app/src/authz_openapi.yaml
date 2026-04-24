@@ -42,13 +42,13 @@ paths:
     parameters:
       - in: path
         name: group_id
-        description: the COGroup ID of the group
+        description: the name of the group in COManage
         schema:
           type: string
         required: true
     get:
-      summary: List users in group_id
-      description: List users in group_id
+      summary: List users in group
+      description: List users in group
       operationId: authz_operations.list_group
       security:
       - bearerAuth: []
