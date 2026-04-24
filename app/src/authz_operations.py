@@ -50,8 +50,8 @@ def list_group(group_id):
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"group/{group_id}", service=service):
-            return auth.list_group()
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"group/{group_id}"):
+            return auth.list_group(group_id)
         return {"error": "User is not authorized to list groups"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401

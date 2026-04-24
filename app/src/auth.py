@@ -521,7 +521,7 @@ def remove_service(service_id, service=SERVICE_NAME):
     return response, status_code
 
 
-def list_group(service=SERVICE_NAME):
+def list_group(group_id, service=SERVICE_NAME):
     groups, status_code = get_service_store_secret(service, key="groups")
     if group_id in groups["ids"]:
         group_id = groups["ids"][group_id]
