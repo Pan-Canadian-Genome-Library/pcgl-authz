@@ -796,8 +796,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
                     delete_service_store_secret(service, key=f"users/{email["Mail"]}")
     user["emails"] = emails
 
-    set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user))
-    status_code = 201 # Created
+    r, status_code = set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user))
 
     response = user
     errors = []
