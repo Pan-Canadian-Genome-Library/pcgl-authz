@@ -5,6 +5,9 @@ import auth
 import config
 import json
 import requests
+import logging
+
+logger = logging.getLogger(__file__)
 
 
 app = connexion.AsyncApp(__name__)

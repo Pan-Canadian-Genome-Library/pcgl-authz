@@ -5,6 +5,9 @@ import uuid
 from connexion.context import context
 import connexion
 import valkey
+import logging
+
+logger = logging.getLogger(__file__)
 
 
 ## Env vars for most auth methods:
