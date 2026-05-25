@@ -40,3 +40,9 @@ allow if {
 	input.path == ["v1", "data", "service", "verified"]
 	input.method == "POST"
 }
+
+# healthcheck: is the opa_secret accessible?
+allow if {
+	input.path == ["v1", "data", "service", "healthcheck"]
+	input.method == "GET"
+}
