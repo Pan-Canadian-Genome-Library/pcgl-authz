@@ -1,6 +1,9 @@
 import connexion
 
+import logging
+import sys
 
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 # Create the application instance
 app = connexion.AsyncApp(__name__)
 

@@ -11,5 +11,11 @@ verified if {
 
 else := false
 
+healthcheck if {
+	data.opa_secret
+}
+
+else := false
+
 
 minus(service, info) := "opa service is running"

@@ -5,6 +5,9 @@ import auth
 import config
 import json
 import requests
+import logging
+
+logger = logging.getLogger(__file__)
 
 
 app = connexion.AsyncApp(__name__)
@@ -32,6 +35,17 @@ def healthcheck():
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
+        response = requests.get(
+            os.getenv("OPA_URL") + "/v1/data/service/healthcheck",
+            json={}
+        )
+        if response.status_code != 200:
+            raise Exception("Couldn't connect to OPA healthcheck")
+        else:
+            if "result" not in response.json() or response.json()["result"] == False:
+                # eventually we want to raise this exception, but for now, just log it so we know
+                #raise Exception("OPA couldn't access its secret")
+                logger.info("OPA couldn't access its secret")
         user_index, status_code = auth.get_service_store_secret(service, key=f"users/index")
         if status_code != 200 or len(user_index) == 0:
             raise Exception("vault failure: couldn't get user index")
