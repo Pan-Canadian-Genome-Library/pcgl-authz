@@ -96,9 +96,10 @@ def handle_token(token, request=None):
                     x = KV_CACHE.set(token, json.dumps(response.json()), ex=expires_in)
                 return response.json()
             elif response.status_code < 500:
+                logger.info(f"bad oauth response: {response.status_code} {response.text}")
                 raise connexion.exceptions.Unauthorized(detail=f"bad oauth response: {response.status_code} {response.text}")
             else:
-                print(f"auth failure: {response.status_code} {response.text}")
+                logger.info(f"auth failure: {response.status_code} {response.text}")
                 raise connexion.exceptions.NonConformingResponse(detail=f"auth failure: {response.status_code} {response.text}")
     except NoServiceFoundError as e:
         raise connexion.exceptions.Forbidden(detail=str(e))
