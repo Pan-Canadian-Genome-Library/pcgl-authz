@@ -88,7 +88,7 @@ def handle_token(token, request=None):
                     access_token = response["access_token"]
                     expires_in = response["expires_in"]
 
-            response = requests.get(url="https://cilogon.org/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
+            response = requests.get(url=f"{PCGL_ISSUER}/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
 
             if response.status_code == 200:
                 # save the token in the cache
@@ -901,6 +901,7 @@ def get_comanage_groups(service=SERVICE_NAME):
 
 
 def reload_comanage(service=SERVICE_NAME):
+    logger.info("RELOAD")
     cached_groups, status_code = get_service_store_secret(service, key="groups")
     if status_code != 200:
         cached_groups = {"members": [], "ids": {}, "index": {}}
