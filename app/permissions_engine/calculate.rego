@@ -31,8 +31,12 @@ else if {
 	user_id in groups.admin
 }
 
-site_curator if {
-	user_id in groups.curator
+data_admin := true if {
+	"PCGL_DATA_ADMIN_GROUP" in data.idp.user_info.groups
+}
+
+else if {
+	user_id in groups.data_admin
 }
 
 #
@@ -60,23 +64,23 @@ team_readable_studies contains p if {
 
 # user can read studies that are either team-readable or user-readable
 readable_studies := all_studies if {
-	site_curator
+	data_admin
 }
 
 else := team_readable_studies | user_readable_studies
 
-# user can edit studies that list the user as a study curator
+# user can edit studies that list the user as a data submitter
 study_editable_studies contains p if {
 	some p in all_studies
-	user_pcglid in study_auths[p].study_curators
+	user_pcglid in study_auths[p].data_submitters
 }
 
-# if the user is a site curator, they can curate any study
+# if the user is a data admin, they can curate any study
 editable_studies := all_studies if {
-	site_curator
+	data_admin
 }
 
-# otherwise, the user can curate studies where they're listed as a study curator
+# otherwise, the user can curate studies where they're listed as a data submitter
 else := study_editable_studies
 
 import data.vault.paths as paths
@@ -122,9 +126,9 @@ studies := all_studies if {
 	site_admin
 }
 
-# if user is a curator, they can access studies that allow edit access for them for this method, path
+# if user is a data_admin, they can access studies that allow edit or read access for them for this method, path
 else := accessible_studies if {
-	site_curator
+	data_admin
 }
 
 else := accessible_studies if {

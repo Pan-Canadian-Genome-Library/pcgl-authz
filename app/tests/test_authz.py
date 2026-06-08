@@ -461,7 +461,7 @@ def studies():
     return {
       "SYNTHETIC-0": {
         "date_created": "2020-03-01",
-        "study_curators": [
+        "data_submitters": [
             "PCGLuser4"
         ],
         "study_id": "SYNTHETIC-0",
@@ -472,7 +472,7 @@ def studies():
       },
       "SYNTHETIC-1": {
         "date_created": "2020-01-01",
-        "study_curators": [
+        "data_submitters": [
           "PCGLuser1"
         ],
         "study_id": "SYNTHETIC-1",
@@ -482,7 +482,7 @@ def studies():
       },
       "SYNTHETIC-2": {
         "date_created": "2020-03-01",
-        "study_curators": [
+        "data_submitters": [
           "PCGLuser2"
         ],
         "study_id": "SYNTHETIC-2",
@@ -492,7 +492,7 @@ def studies():
       },
       "SYNTHETIC-3": {
         "date_created": "2020-03-01",
-        "study_curators": [
+        "data_submitters": [
           "PCGLuser1",
           "PCGLuser3"
         ],
@@ -505,7 +505,7 @@ def studies():
       },
       "SYNTHETIC-4": {
         "date_created": "2020-03-01",
-        "study_curators": [
+        "data_submitters": [
           "PCGLuser4"
         ],
         "study_id": "SYNTHETIC-4",
