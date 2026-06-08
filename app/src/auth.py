@@ -32,7 +32,7 @@ PCGL_CLIENT_ID = os.getenv("PCGL_CLIENT_ID", None)
 PCGL_CLIENT_SECRET = os.getenv("PCGL_CLIENT_SECRET", None)
 PCGL_ADMIN_GROUP = os.getenv("PCGL_ADMIN_GROUP", "CO:admins")
 PCGL_MEMBER_GROUP = os.getenv("PCGL_MEMBER_GROUP", "CO:members:active")
-PCGL_CURATOR_GROUP = os.getenv("PCGL_CURATOR_GROUP", "PCGL:site_curators")
+PCGL_DATA_ADMIN_GROUP = os.getenv("PCGL_DATA_ADMIN_GROUP", "PCGL:data-admin")
 
 class AuthzError(Exception):
     pass
@@ -564,7 +564,7 @@ def list_authz_for_user(pcgl_id, service=SERVICE_NAME):
             result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
             result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
             result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
-            result["userinfo"]["site_curator"] = permissions["user_is_site_curator"]
+            result["userinfo"]["data_admin"] = permissions["user_is_data_admin"]
         else:
             return permissions, status_code
         groups, status_code = get_groups_for_user(user_dict["comanage_id"], service=service)
@@ -888,9 +888,9 @@ def get_comanage_groups(service=SERVICE_NAME):
             if group["name"] == PCGL_ADMIN_GROUP:
                 data["ids"]["admin"] = str(group["id"])
                 data["admin"] = group["members"]
-            elif group["name"] == PCGL_CURATOR_GROUP:
-                data["ids"]["curator"] = str(group["id"])
-                data["curator"] = group["members"]
+            elif group["name"] == PCGL_DATA_ADMIN_GROUP:
+                data["ids"]["data_admin"] = str(group["id"])
+                data["data_admin"] = group["members"]
             elif group["name"] == PCGL_MEMBER_GROUP:
                 data["ids"]["members"] = str(group["id"])
                 data["members"] = group["members"]

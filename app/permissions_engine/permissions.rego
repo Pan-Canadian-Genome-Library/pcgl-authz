@@ -17,7 +17,7 @@ site_admin := data.calculate.site_admin if {
 
 else := false
 
-site_curator := data.calculate.site_curator if {
+data_admin := data.calculate.data_admin if {
 	valid_token
 }
 
@@ -65,7 +65,7 @@ else := false
 
 # if a specific study is in the body, allowed = true if that study is in studies
 # or if the user is a site admin
-# or if the user is a site curator and wants to edit something
+# or if the user is a data admin and wants to edit something
 allowed if {
 	studies[input.body.study] == true
 }
@@ -84,12 +84,12 @@ else if {
 }
 
 else if {
-	site_curator
+	data_admin
 	editable_method_path
 }
 
 else if {
-	site_curator
+	data_admin
 	readable_method_path
 }
 
@@ -114,8 +114,8 @@ user_is_site_admin if {
 
 else := false
 
-user_is_site_curator if {
-	user_id in data.vault.groups.curator
+user_is_data_admin if {
+	user_id in data.vault.groups.data_admin
 }
 
 else := false

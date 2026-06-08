@@ -499,9 +499,9 @@ components:
         study_id:
           type: string
           description: name of the study
-        study_curators:
+        data_submitters:
           type: array
-          description: list of users who are study curators for this study
+          description: list of users who are data submitters for this study
           items:
             type: string
         team_members:
@@ -514,7 +514,7 @@ components:
           description: date study was created, for embargo purposes. This may or may not be the date of ingest.
       required:
         - study_id
-        - study_curators
+        - data_submitters
         - team_members
     DACAuthorization:
       type: object
