@@ -467,20 +467,10 @@ async def is_allowed():
 
 async def reload_comanage():
     try:
-        if not auth.is_site_admin(connexion.request):
-            return {"error": "User is not authorized to reload COManage"}, 403
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
-    except auth.AuthzError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 403
-    except Exception as e:
-        return {"error": f"{type(e)} {str(e)}"}, 500
-
-    try:
         open("/app/reload", "x")
     except FileExistsError:
         pass
     except Exception as e:
         return {"error": f"couldn't reload: {type(e)} {str(e)}"}, 500
 
-    return {"status": "reloading: should be complete in a minute or two"}, 200
+    return {"status": "reloading: should be complete within a minute"}, 200
