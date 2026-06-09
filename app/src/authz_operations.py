@@ -12,8 +12,32 @@ logger = logging.getLogger(__file__)
 
 app = connexion.AsyncApp(__name__)
 
+
+# Security scheme handlers
 def handle_token(token, request=None):
     return auth.handle_token(token, request)
+
+
+def handle_service_id_auth(token, request=None):
+    # if the service doesn't exist, forbid the request
+    try:
+        auth.get_service(token)
+    except auth.NoServiceFoundError as e:
+        raise connexion.exceptions.Forbidden(detail=str(e))
+    token_info = {
+      "active": False
+    }
+    return token_info
+
+
+def handle_service_auth(token, request=None):
+    service_id = request.headers['X-Service-Id']
+    if not auth.verify_service_token(service_id, token):
+        raise connexion.exceptions.Forbidden(detail=f"service token not valid for service {service_id}")
+    token_info = {
+      "active": False
+    }
+    return token_info
 
 
 # API endpoints
