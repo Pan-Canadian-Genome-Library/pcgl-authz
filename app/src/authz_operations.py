@@ -12,8 +12,38 @@ logger = logging.getLogger(__file__)
 
 app = connexion.AsyncApp(__name__)
 
+
+# Security scheme handlers
 def handle_token(token, request=None):
     return auth.handle_token(token, request)
+
+
+def handle_service_id_auth(token, request=None):
+    service = "opa"
+    if "X-Test-Mode" in request.headers and request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service = "test"
+    try:
+        # if the service doesn't exist, forbid the request
+        auth.get_service(token, service=service)
+    except auth.NoServiceFoundError as e:
+        raise connexion.exceptions.Forbidden(detail=f"service {str(e)}")
+    token_info = {
+      "active": False
+    }
+    return token_info
+
+
+def handle_service_auth(token, request=None):
+    service_namespace = "opa"
+    if "X-Test-Mode" in request.headers and request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service_namespace = "test"
+    service_id = request.headers['X-Service-Id']
+    if not auth.verify_service_token(service_id, token, service_namespace=service_namespace):
+        raise connexion.exceptions.Forbidden(detail=f"service token not valid for service {service_id}")
+    token_info = {
+      "active": False
+    }
+    return token_info
 
 
 # API endpoints
@@ -153,7 +183,10 @@ def remove_service(service_id):
         service = "test"
     try:
         if auth.is_site_admin(connexion.request):
-            return auth.remove_service(service_id, service=service)
+            response, status_code = auth.remove_service(service_id, service=service)
+            if status_code < 300:
+                return None, status_code
+            return response, status_code
         return {"error": "User is not authorized to remove services"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
@@ -467,20 +500,10 @@ async def is_allowed():
 
 async def reload_comanage():
     try:
-        if not auth.is_site_admin(connexion.request):
-            return {"error": "User is not authorized to reload COManage"}, 403
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
-    except auth.AuthzError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 403
-    except Exception as e:
-        return {"error": f"{type(e)} {str(e)}"}, 500
-
-    try:
         open("/app/reload", "x")
     except FileExistsError:
         pass
     except Exception as e:
         return {"error": f"couldn't reload: {type(e)} {str(e)}"}, 500
 
-    return {"status": "reloading: should be complete in a minute or two"}, 200
+    return {"status": "reloading: should be complete within a minute"}, 200

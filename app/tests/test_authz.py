@@ -188,6 +188,34 @@ def test_service_token(service_uuid):
     assert response.status_code == 403
 
 
+def test_reload(service_uuid):
+    headers = {
+        "X-Test-Mode": os.getenv("TEST_KEY")
+    }
+
+    # check that reload works with only service token:
+    headers["X-Service-Id"] = "test"
+    headers["X-Service-Token"] = get_service_token(service_uuid)
+
+    response = requests.post(f"{HOST}/reload", headers=headers)
+    print(response.text)
+    assert response.status_code == 200
+
+    # if the service token is wrong, should be forbidden
+    headers["X-Service-Token"] = "notatoken"
+
+    response = requests.post(f"{HOST}/reload", headers=headers)
+    print(response.text)
+    assert response.status_code == 403
+
+    # if the service isn't valid, should be forbidden
+    headers["X-Service-Id"] = "testtest"
+
+    response = requests.post(f"{HOST}/reload", headers=headers)
+    print(response.text)
+    assert response.status_code == 403
+
+
 def test_add_studies(studies, service_uuid):
     headers = {
         "Authorization": f"Bearer admin",

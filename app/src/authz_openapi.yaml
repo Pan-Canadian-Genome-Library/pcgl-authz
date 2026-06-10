@@ -377,7 +377,8 @@ paths:
       summary: Reload users and groups from COManage
       operationId: authz_operations.reload_comanage
       security:
-      - bearerAuth: []
+        - serviceIdAuth: []
+          serviceTokenAuth: []
       responses:
         200:
           description: Success
@@ -388,6 +389,16 @@ components:
       type: http
       scheme: bearer
       x-bearerInfoFunc: authz_operations.handle_token
+    serviceIdAuth:
+      type: apiKey
+      name: X-Service-Id
+      in: header
+      x-apikeyInfoFunc: authz_operations.handle_service_id_auth
+    serviceTokenAuth:
+      type: apiKey
+      name: X-Service-Token
+      in: header
+      x-apikeyInfoFunc: authz_operations.handle_service_auth
   parameters:
     ServiceId:
       in: header
