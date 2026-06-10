@@ -19,11 +19,14 @@ def handle_token(token, request=None):
 
 
 def handle_service_id_auth(token, request=None):
-    # if the service doesn't exist, forbid the request
+    service = "opa"
+    if "X-Test-Mode" in request.headers and request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service = "test"
     try:
-        auth.get_service(token)
+        # if the service doesn't exist, forbid the request
+        auth.get_service(token, service=service)
     except auth.NoServiceFoundError as e:
-        raise connexion.exceptions.Forbidden(detail=str(e))
+        raise connexion.exceptions.Forbidden(detail=f"service {str(e)}")
     token_info = {
       "active": False
     }
@@ -31,8 +34,11 @@ def handle_service_id_auth(token, request=None):
 
 
 def handle_service_auth(token, request=None):
+    service_namespace = "opa"
+    if "X-Test-Mode" in request.headers and request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service_namespace = "test"
     service_id = request.headers['X-Service-Id']
-    if not auth.verify_service_token(service_id, token):
+    if not auth.verify_service_token(service_id, token, service_namespace=service_namespace):
         raise connexion.exceptions.Forbidden(detail=f"service token not valid for service {service_id}")
     token_info = {
       "active": False
