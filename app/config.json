@@ -7,25 +7,25 @@
     "readable": [
         {
             "method": "GET",
-            "endpoint": "authz/study/?.*"
+            "endpoint": "study/?.*"
         },
         {
             "method": "GET",
-            "endpoint": "authz/user/?.*"
+            "endpoint": "user/?.*"
         }
     ],
     "editable": [
         {
             "method": "POST",
-            "endpoint": "authz/study/?.*"
+            "endpoint": "study/?.*"
         },
         {
             "method": "POST",
-            "endpoint": "authz/user/?.*"
+            "endpoint": "user/?.*"
         },
         {
             "method": "DELETE",
-            "endpoint": "authz/user/?.*"
+            "endpoint": "user/?.*"
         }
     ]
   }
