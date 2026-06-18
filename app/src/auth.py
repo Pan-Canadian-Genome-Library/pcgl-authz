@@ -71,6 +71,8 @@ def handle_token(token, request=None):
             token_info["sub"] = token
             if "admin" in token:
                 token_info["groups"].append(PCGL_ADMIN_GROUP)
+            if "data_admin" in token:
+                token_info["groups"].append(PCGL_DATA_ADMIN_GROUP)
             return token_info
 
         # look the token up in the cache:
