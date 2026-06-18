@@ -19,7 +19,7 @@ try:
             new_provider = { "keys": [{"cert": jwks_response.text, "iss": issuer, "aud": aud}]}
             response, status_code = set_service_store_secret("opa", key="data", value=json.dumps(new_provider))
     else:
-        raise Exception("couldn't get openid configuration")
+        raise Exception(f"couldn't get openid configuration: {jwks_response.status_code} {jwks_response.text}")
 
     # initialize authz as service, with the default client ID and secret
     with open("config.json") as f:
