@@ -1,0 +1,32 @@
+{
+  "service": {
+    "service_id": "authz",
+    "authorization": {
+        "token_type": "refresh"
+    },
+    "readable": [
+        {
+            "method": "GET",
+            "endpoint": "authz/study/?.*"
+        },
+        {
+            "method": "GET",
+            "endpoint": "authz/user/?.*"
+        }
+    ],
+    "editable": [
+        {
+            "method": "POST",
+            "endpoint": "authz/study/?.*"
+        },
+        {
+            "method": "POST",
+            "endpoint": "authz/user/?.*"
+        },
+        {
+            "method": "DELETE",
+            "endpoint": "authz/user/?.*"
+        }
+    ]
+  }
+}
