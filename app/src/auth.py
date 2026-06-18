@@ -457,7 +457,7 @@ def add_service(service_dict, request=None, service=SERVICE_NAME):
         services = response["services"]
     if service_id not in services:
         services.append(service_id)
-        if request is not None and "X-Test-Mode" not in request.headers:
+        if request is None or "X-Test-Mode" not in request.headers:
             service_dict["service_uuid"] = str(uuid.uuid1())
     else:
         updated_service = True
