@@ -1,6 +1,6 @@
 import json
 import os
-from src.auth import set_service_store_secret, reload_comanage
+from src.auth import set_service_store_secret, reload_comanage, add_service
 import sys
 import requests
 
@@ -20,6 +20,13 @@ try:
             response, status_code = set_service_store_secret("opa", key="data", value=json.dumps(new_provider))
     else:
         raise Exception("couldn't get openid configuration")
+
+    # initialize authz as service, with the default client ID and secret
+    with open("config.json") as f:
+        authz_service = json.load(f)["service"]
+        authz_service["authorization"]["client_id"] = os.getenv("PCGL_CLIENT_ID")
+        authz_service["authorization"]["client_secret"] = os.getenv("PCGL_CLIENT_SECRET")
+        add_service(authz_service)
 
 except Exception as e:
     print(f"{type(e)}{str(e)}")
