@@ -245,7 +245,7 @@ def test_add_studies(studies, service_uuid):
 
 def test_remove_study(studies, service_uuid):
     headers = {
-        "Authorization": f"Bearer admin",
+        "Authorization": f"Bearer data_admin",
         "X-Test-Mode": os.getenv("TEST_KEY")
     }
     headers["X-Service-Id"] = "test"
