@@ -233,10 +233,19 @@ def test_add_studies(studies, service_uuid):
     print(response.text)
     assert len(response.json()) == len(studies)
 
+    headers = {
+        "Authorization": f"Bearer data_admin",
+        "X-Test-Mode": os.getenv("TEST_KEY")
+    }
+
+    response = requests.get(f"{HOST}/study", headers=headers)
+    print(response.text)
+    assert len(response.json()) == len(studies)
+
 
 def test_remove_study(studies, service_uuid):
     headers = {
-        "Authorization": f"Bearer admin",
+        "Authorization": f"Bearer data_admin",
         "X-Test-Mode": os.getenv("TEST_KEY")
     }
     headers["X-Service-Id"] = "test"
@@ -451,6 +460,13 @@ def users():
             "oidcsub": "admin",
             "pcglid": "PCGLuser0",
             "emails": ["admin@test.ca"],
+            "study_authorizations": {}
+        },
+        "data-admin": {
+            "comanage_id": "111",
+            "oidcsub": "data_admin",
+            "pcglid": "PCGLuser10",
+            "emails": ["data-admin@test.ca"],
             "study_authorizations": {}
         },
         "user1": {

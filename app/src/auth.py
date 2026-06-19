@@ -71,6 +71,8 @@ def handle_token(token, request=None):
             token_info["sub"] = token
             if "admin" in token:
                 token_info["groups"].append(PCGL_ADMIN_GROUP)
+            if "data_admin" in token:
+                token_info["groups"].append(PCGL_DATA_ADMIN_GROUP)
             return token_info
 
         # look the token up in the cache:
@@ -363,6 +365,9 @@ def list_studies(service=SERVICE_NAME):
     response, status_code = get_service_store_secret(service, key="studies")
     if status_code == 200:
         return response['studies'], status_code
+    if status_code == 404:
+        # it's okay if it's a 404; that just means no studies exist yet.
+        return [], 200
     return response, status_code
 
 
