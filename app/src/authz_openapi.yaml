@@ -51,7 +51,9 @@ paths:
       description: List users in group
       operationId: authz_operations.list_group
       security:
-      - bearerAuth: []
+        - bearerAuth: []
+        - serviceIdAuth: []
+          serviceTokenAuth: []
       responses:
         200:
           description: Success
