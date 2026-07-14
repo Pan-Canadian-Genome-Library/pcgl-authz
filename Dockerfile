@@ -29,9 +29,6 @@ RUN chmod 777 /vault/data
 WORKDIR /app/
 RUN chown -R pcgl:pcgl /app
 
-RUN mkdir -p /permissions_engine
-RUN chown -R pcgl:pcgl /permissions_engine
-
 USER pcgl
 
 RUN curl -L -o opa https://openpolicyagent.org/downloads/v1.1.0/opa_linux_amd64_static
