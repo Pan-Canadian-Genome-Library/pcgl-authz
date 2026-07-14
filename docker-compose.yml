@@ -4,6 +4,25 @@ volumes:
   valkey-data:
 
 services:
+  setup:
+    build:
+      context: .
+      dockerfile:
+        Dockerfile.setup
+      args:
+        venv_python: "3.12"
+    volumes:
+      - auth-data:/permissions_engine
+    environment:
+      VAULT_URL: http://vault:8200
+      VAULT_NAMESPACE: ${VAULT_NAMESPACE}
+      PCGL_ADMIN_GROUP: ${PCGL_ADMIN_GROUP}
+      PCGL_DATA_ADMIN_GROUP: ${PCGL_DATA_ADMIN_GROUP}
+      PCGL_MEMBER_GROUP: ${PCGL_MEMBER_GROUP}
+    entrypoint:
+      - "bash"
+      - "/app/setup.sh"
+
   flask:
     build:
       context: .
@@ -33,6 +52,7 @@ services:
       PCGL_COID: ${PCGL_COID}
       PCGL_API_URL: ${PCGL_API_URL}
       PCGL_ADMIN_GROUP: ${PCGL_ADMIN_GROUP}
+      PCGL_DATA_ADMIN_GROUP: ${PCGL_DATA_ADMIN_GROUP}
       PCGL_MEMBER_GROUP: ${PCGL_MEMBER_GROUP}
       TEST_KEY: usethistestkey
       HOST: http://localhost:1235
@@ -54,9 +74,12 @@ services:
       - "--log-level=info"
       - "--authentication=token"
       - "--authorization=basic"
-      - "-s"
       - "--addr=0.0.0.0:8181"
+      - "-s"
       - "/permissions_engine/"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
 
   vault:
     image: openbao/openbao:2.5
