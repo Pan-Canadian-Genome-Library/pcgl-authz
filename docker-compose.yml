@@ -16,6 +16,7 @@ services:
     environment:
       VAULT_URL: http://vault:8200
       VAULT_NAMESPACE: ${VAULT_NAMESPACE}
+      OPA_SECRET: "testtest"
       PCGL_ADMIN_GROUP: ${PCGL_ADMIN_GROUP}
       PCGL_DATA_ADMIN_GROUP: ${PCGL_DATA_ADMIN_GROUP}
       PCGL_MEMBER_GROUP: ${PCGL_MEMBER_GROUP}
@@ -37,6 +38,7 @@ services:
       - vault-data:/vault
     environment:
       OPA_URL: http://opa:8181
+      OPA_SECRET: "testtest"
       VAULT_URL: http://vault:8200
       VALKEY_URL: valkey
       VALKEY_USER: ${VALKEY_USER}
