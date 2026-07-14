@@ -907,6 +907,8 @@ def get_comanage_groups(service=SERVICE_NAME):
 
 def reload_comanage(service=SERVICE_NAME):
     logger.info("RELOAD")
+    result = {"users": []}
+
     cached_groups, status_code = get_service_store_secret(service, key="groups")
     if status_code != 200:
         cached_groups = {"members": [], "ids": {}, "index": {}}
@@ -914,13 +916,13 @@ def reload_comanage(service=SERVICE_NAME):
     comanage_groups, status_code = get_comanage_groups(service=service)
     if status_code == 200:
         comanage_groups, status_code = set_service_store_secret(service, key="groups", value=json.dumps(comanage_groups))
+        result["groups"] = comanage_groups
     else:
         return {"error": f"failed to save groups: {comanage_groups}"}, status_code
-    result = []
     # initialize new users:
     try:
         for member in reversed(comanage_groups["members"]):
-            result.append(get_user_record(member, force=True, service=service))
+            result["users"].append(get_user_record(member, force=True, service=service))
     except Exception as e:
         return {"error": f"failed to save users: {type(e)} {str(e)}"}, status_code
 
