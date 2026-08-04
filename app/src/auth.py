@@ -539,8 +539,8 @@ def list_group(group_id, service=SERVICE_NAME):
         for comanage_id in groups["index"][group_id]["members"]:
             user, status_code = get_user_by_comanage_id(comanage_id, service=service)
             if status_code == 200:
-                if "pcglid" in user and user["pcglid"] not in result:
-                    result.append(user["pcglid"])
+                if "pcglid" in user and "emails" in user:
+                    result.append({"pcgl_id": user["pcglid"], "emails": user["emails"]})
         return result, 200
     return groups, status_code
 

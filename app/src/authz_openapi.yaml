@@ -62,8 +62,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
-                  description: user_ids
+                  $ref: "#/components/schemas/UserInfo"
   /service:
     get:
       summary: List registered services
