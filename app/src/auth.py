@@ -539,8 +539,8 @@ def list_group(group_id, service=SERVICE_NAME):
         for comanage_id in groups["index"][group_id]["members"]:
             user, status_code = get_user_by_comanage_id(comanage_id, service=service)
             if status_code == 200:
-                if "pcglid" in user and user["pcglid"] not in result:
-                    result.append(user["pcglid"])
+                if "pcglid" in user and "emails" in user:
+                    result.append({"pcgl_id": user["pcglid"], "emails": user["emails"]})
         return result, 200
     return groups, status_code
 
@@ -792,11 +792,13 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
 
     # set up email addresses
     emails = []
+    email_addrs = []
     response = requests.get(f"{PCGL_API_URL}/registry/email_addresses.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
     if response.status_code == 200:
         for email in response.json()["EmailAddresses"]:
-            if email["Mail"] not in emails and email["Verified"]:
+            if email["Mail"] not in email_addrs and email["Verified"]:
                 emails.append({"address": email["Mail"], "type": email["Type"]})
+                email_addrs.append(email["Mail"])
                 # see if we have any DAC auths for this email address:
                 temp_user, status_code = get_service_store_secret(service, key=f"users/{email["Mail"]}")
                 if status_code == 200:
