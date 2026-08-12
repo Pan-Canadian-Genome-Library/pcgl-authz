@@ -13,7 +13,7 @@ paths:
       description: Returns information about the ingest service
       operationId: authz_operations.get_service_info
       responses:
-        200:
+        "2XX":
           description: Retrieve info about the ingest service
           content:
             application/json:
@@ -25,13 +25,13 @@ paths:
       description: Report health status of service
       operationId: authz_operations.healthcheck
       responses:
-        200:
+        "2XX":
           description: Service is healthy
           content:
             application/json:
               schema:
                 type: object
-        400:
+        "4XX":
           description: Service is unhealthy
           content:
             application/json:
@@ -55,7 +55,7 @@ paths:
         - serviceIdAuth: []
           serviceTokenAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -70,7 +70,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -86,7 +86,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/ServiceRegistrationRequest'
       responses:
-        200:
+        "2XX":
           description: Success. Includes the assigned service UUID. The registering service needs to save the UUID for creating verification tokens.
           content:
             application/json:
@@ -105,7 +105,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -117,7 +117,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
   /service/{service_id}/verify:
     parameters:
@@ -136,7 +136,7 @@ paths:
             type: string
           required: true
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -152,7 +152,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/ServiceVerificationTokenRequest'
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -175,7 +175,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/StudyAuthorizationRequest'
       responses:
-          200:
+          "2XX":
             description: Success
             content:
               application/json:
@@ -188,7 +188,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -212,7 +212,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -224,7 +224,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -247,7 +247,7 @@ paths:
       # the bearer token must belong to a chair or member of the DAC responsible for this study
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -265,7 +265,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/StudyDACAuthorizationRequest'
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -281,7 +281,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/StudyDACAuthorizationRequest'
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -303,7 +303,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -327,12 +327,16 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserAuthorization'
+        "401":
+          description: User token is invalid
+        "403":
+          description: Service token is invalid
   /allowed:
     parameters:
       - $ref: "#/components/parameters/ServiceId"
@@ -346,7 +350,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/ActionAuthorizationRequest'
       responses:
-        200:
+        "2XX":
           description: Success
           content:
             application/json:
@@ -363,7 +367,7 @@ paths:
         - serviceIdAuth: []
           serviceTokenAuth: []
       responses:
-        200:
+        "2XX":
           description: Success
 
 components:
