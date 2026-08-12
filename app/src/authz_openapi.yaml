@@ -505,6 +505,9 @@ components:
         creation_date:
           type: string
           description: date study was created, for embargo purposes. This may or may not be the date of ingest.
+        dac_id:
+          type: string
+          description: The ID of the responsible DAC, found in the name of the COManage group, e.g. PCGL:DACO:Member:{dac_id} or PCGL:DACO:Chair:{dac_id}.
       required:
         - study_id
         - data_submitters
