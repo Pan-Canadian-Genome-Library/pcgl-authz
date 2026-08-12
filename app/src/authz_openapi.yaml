@@ -205,21 +205,6 @@ paths:
         schema:
           type: string
         required: true
-    post:
-      summary: Add a DAC authorization for a study for a group of users
-      description: Authorize a study for a group of users (or update a study auth for a set of users)
-      operationId: authz_operations.authorize_study_for_users
-      security:
-      - bearerAuth: []
-      requestBody:
-        $ref: '#/components/requestBodies/StudyDACAuthorizationRequest'
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
     get:
       summary: Get authorization information for a study
       description: Get authorization information for a study
@@ -245,6 +230,63 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudyAuthorization'
+  /study/{study_id}/dac_authorizations:
+    parameters:
+      - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/ServiceToken"
+      - in: path
+        name: study_id
+        schema:
+          type: string
+        required: true
+    get:
+      summary: Get authorization information for a study
+      description: Get authorization information for a study
+      operationId: authz_operations.get_study_dac_authorizations
+      security:
+      # the bearer token must belong to a chair or member of the DAC responsible for this study
+      - bearerAuth: []
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudyDACAuthorization'
+    post:
+      summary: Add DAC authorizations for a study for a group of users
+      description: Authorize a study for a group of users (or update a study auth for a set of users)
+      operationId: authz_operations.authorize_study_for_users
+      security:
+      # the bearer token must belong to the chair of the DAC responsible for this study
+      - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/StudyDACAuthorizationRequest'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: Revoke DAC authorizations for a study for a group of users
+      description: Revoke a study for a group of users (or update a study auth for a set of users)
+      operationId: authz_operations.revoke_study_for_users
+      security:
+      # the bearer token must belong to the chair of the DAC responsible for this study
+      - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/StudyDACAuthorizationRequest'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
   /user/lookup:
     parameters:
       - $ref: "#/components/parameters/ServiceId"
@@ -290,68 +332,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserAuthorization'
-        401:
-          description: User token is invalid
-        403:
-          description: Service token is invalid
-    post:
-      summary: Add a study authorization for a user
-      description: Authorize a study for a user (or update a study auth for a user)
-      operationId: authz_operations.authorize_study_for_user
-      security:
-      - bearerAuth: []
-      requestBody:
-        $ref: '#/components/requestBodies/DACAuthorizationRequest'
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
                 $ref: '#/components/schemas/UserAuthorization'
-  /user/{pcgl_id}/study/{study_id}:
-    parameters:
-      - $ref: "#/components/parameters/ServiceId"
-      - $ref: "#/components/parameters/ServiceToken"
-      - in: path
-        name: pcgl_id
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: study_id
-        schema:
-          type: string
-        required: true
-    get:
-      summary: Is a user authorized for a study?
-      description: Is a user authorized for a study?
-      operationId: authz_operations.get_study_for_user
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: boolean
-    delete:
-      summary: Remove a study authorization for a user
-      description: Remove a study for a user
-      operationId: authz_operations.remove_study_for_user
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
   /allowed:
     parameters:
       - $ref: "#/components/parameters/ServiceId"
@@ -443,11 +424,6 @@ components:
         'application/json':
           schema:
             $ref: "#/components/schemas/StudyDACAuthorization"
-    DACAuthorizationRequest:
-      content:
-        'application/json':
-          schema:
-            $ref: "#/components/schemas/DACAuthorization"
     ActionAuthorizationRequest:
       content:
         'application/json':
@@ -529,20 +505,6 @@ components:
         - study_id
         - data_submitters
         - team_members
-    DACAuthorization:
-      type: object
-      description: a DAC approval that authorizes a user to access a study for a specified date range
-      properties:
-        study_id:
-          type: string
-        start_date:
-          type: string
-        end_date:
-          type: string
-      required:
-        - study_id
-        - start_date
-        - end_date
     StudyDACAuthorization:
       type: object
       description: a DAC approval for multiple users for the given study
@@ -579,7 +541,7 @@ components:
         - method
     UserAuthorization:
       type: object
-      description: describes an authorized user and the programs the user is authorized to view
+      description: describes an authorized user and the studies the user is authorized to view
       properties:
         userinfo:
           $ref: "#/components/schemas/UserInfo"
@@ -589,6 +551,7 @@ components:
             $ref: "#/components/schemas/COManageGroup"
         study_authorizations:
           type: object
+          description: A compiled list of which studies the user has read and edit access for at the current time
           properties:
             readable_studies:
               type: array
@@ -603,7 +566,15 @@ components:
         dac_authorizations:
           type: array
           items:
-            $ref: "#/components/schemas/DACAuthorization"
+            type: object
+            description: a DAC approval that authorizes a user to access a study for a specified date range
+            properties:
+              study_id:
+                type: string
+              start_date:
+                type: string
+              end_date:
+                type: string
     UserInfo:
       type: object
       description: describes an authenticated user
