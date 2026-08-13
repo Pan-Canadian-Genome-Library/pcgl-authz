@@ -258,7 +258,7 @@ paths:
     post:
       summary: Add DAC authorizations for a study for a group of users
       description: Authorize a study for a group of users (or update a study auth for a set of users)
-      operationId: authz_operations.authorize_study_for_users
+      operationId: authz_operations.add_study_dac_authorizations
       security:
       # the bearer token must belong to the chair of the DAC responsible for this study
       - bearerAuth: []
@@ -274,7 +274,7 @@ paths:
     delete:
       summary: Revoke DAC authorizations for a study for a group of users
       description: Revoke a study for a group of users (or update a study auth for a set of users)
-      operationId: authz_operations.revoke_study_for_users
+      operationId: authz_operations.revoke_study_dac_authorizations
       security:
       # the bearer token must belong to the chair of the DAC responsible for this study
       - bearerAuth: []
