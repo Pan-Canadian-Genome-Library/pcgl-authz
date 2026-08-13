@@ -254,7 +254,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/StudyDACAuthorization'
+                  type: object
     post:
       summary: Add DAC authorizations for a study for a group of users
       description: Authorize a study for a group of users (or update a study auth for a set of users)
@@ -279,7 +279,7 @@ paths:
       # the bearer token must belong to the chair of the DAC responsible for this study
       - bearerAuth: []
       requestBody:
-        $ref: '#/components/requestBodies/StudyDACAuthorizationRequest'
+        $ref: '#/components/requestBodies/StudyDACRevocationRequest'
       responses:
         "2XX":
           description: Success
@@ -428,6 +428,17 @@ components:
         'application/json':
           schema:
             $ref: "#/components/schemas/StudyDACAuthorization"
+    StudyDACRevocationRequest:
+      content:
+        'application/json':
+          schema:
+            type: object
+            description: a DAC revocation for multiple users for the given study
+            properties:
+              user_emails:
+                type: array
+                items:
+                  type: string
     ActionAuthorizationRequest:
       content:
         'application/json':
