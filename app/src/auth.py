@@ -86,9 +86,12 @@ def handle_token(token, request=None):
                 if "token_type" in service_dict["authorization"] and service_dict["authorization"]["token_type"] == "refresh":
                     client_id = service_dict["authorization"]["client_id"]
                     client_secret = service_dict["authorization"]["client_secret"]
-                    response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
-                    access_token = response["access_token"]
-                    expires_in = response["expires_in"]
+                    try:
+                        response = exchange_refresh_token(token, client_id=client_id, client_secret=client_secret)
+                        access_token = response["access_token"]
+                        expires_in = response["expires_in"]
+                    except UserTokenError as e:
+                        raise connexion.exceptions.Unauthorized(detail=f"bad oauth response: {str(e)}")
 
             response = requests.get(url=f"{PCGL_ISSUER}/oauth2/userinfo", params={"access_token": access_token}, allow_redirects=False)
 
@@ -138,8 +141,9 @@ def exchange_refresh_token(refresh_token, client_id=PCGL_CLIENT_ID, client_secre
     response = requests.post(f"{PCGL_ISSUER}/oauth2/token", data=payload)
     if response.status_code == 200:
         return response.json()
+    logger.info(f"error in exchanging refresh token: {response.status_code} {response.text}")
     if response.status_code < 500:
-        raise UserTokenError(response.text)
+        raise UserTokenError(f"error in exchanging refresh token: {response.status_code} {response.text}")
     raise connexion.exceptions.NonConformingResponse(detail=response.text)
 
 
