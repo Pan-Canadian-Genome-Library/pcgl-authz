@@ -387,6 +387,10 @@ def add_study(study_auth, service=SERVICE_NAME):
         if "date_created" not in study_auth:
             from datetime import datetime
             study_auth["date_created"] = datetime.today().strftime('%Y-%m-%d')
+
+        if "dac_authorizations" not in study_auth:
+            # dac_auths are keyed by emails and contain date ranges
+            study_auth["dac_authorizations"] = {}
         response, status_code = set_service_store_secret(service, key=f"studies/{study_id}", value=json.dumps({study_id: study_auth}))
         if status_code < 300:
             # update the values for the study list

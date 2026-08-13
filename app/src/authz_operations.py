@@ -320,8 +320,14 @@ def get_study_dac_authorizations(study_id):
     try:
         if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/study/{study_id}/dac_authorizations", study=study_id):
             response, status_code = auth.get_study(study_id, service=service)
-            ### TODO: this entry doesn't exist yet
-            return response["dac_authorizations"], status_code
+            if status_code == 200:
+                dac_auths = []
+                # dac_auths are keyed by emails and contain date ranges
+                for email in response["dac_authorizations"]:
+                    dac_auths.append({"email": email, "start_date": response["dac_authorizations"][email]["start_date"], "end_date": response["dac_authorizations"][email]["end_date"]})
+                return dac_auths, status_code
+            else:
+                return {"error": f"Study {study_id} not found"}, 404
         return {"error": "User is not authorized to get studies"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
@@ -333,34 +339,40 @@ def get_study_dac_authorizations(study_id):
 
 @app.route('/study/<path:study_id>/dac_authorizations')
 async def add_study_dac_authorizations(study_id):
-    study_dict = await connexion.request.json()
-    study_dict["study_id"] = study_id
+    study_dac_dict = await connexion.request.json()
     service = "opa"
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study/{study_id}/dac_authorizations", study=study_dict["study_id"]):
-            # we need to check to see if the study even exists in the system
-            all_studies, status_code = auth.list_studies(service=service)
-            if status_code != 200:
-                return all_studies, status_code
-            if study_dict["study_id"] not in all_studies:
-                return {"error": f"Study {study_dict['study_id']} does not exist in {all_studies}"}
-
+        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study/{study_id}/dac_authorizations", study=study_id):
             # for each user, look up user by email:
-            user_emails = list(set(study_dict["user_emails"]))
+            user_emails = list(set(study_dac_dict["user_emails"]))
+
+            # find the study and add these emails to it:
+            study_dict, status_code = auth.get_study(study_id, service=service)
+            if status_code == 200:
+                # add the emails to the study_dict
+                # dac_auths are keyed by emails and contain date ranges
+                for user_email in user_emails:
+                    study_dict["dac_authorizations"][user_email] = {
+                        "start_date": study_dac_dict["start_date"],
+                        "end_date": study_dac_dict["end_date"]
+                    }
+            else:
+                return {"error": f"Study {study_dac_dict['study_id']} does not exist"}
+
             result = {"success": [], "error": []}
             study_auth = {
-                "study_id": study_dict["study_id"],
-                "start_date": study_dict["start_date"],
-                "end_date": study_dict["end_date"]
+                "study_id": study_id,
+                "start_date": study_dac_dict["start_date"],
+                "end_date": study_dac_dict["end_date"]
             }
             for user_email in user_emails:
-                user_dict, status_code = auth.lookup_user_by_email(user_email)
+                user_dict, status_code = auth.lookup_user_by_email(user_email, service=service)
                 if status_code == 404:
                     # create a temp user
                     user_dict = {"study_authorizations": {}, "id": user_email}
-                    user_dict["study_authorizations"][study_dict["study_id"]] = study_auth
+                    user_dict["study_authorizations"][study_id] = study_auth
                     response, status_code = auth.write_user(user_dict, service=service)
                     if status_code == 200:
                         result["success"].append(user_email)
@@ -369,10 +381,10 @@ async def add_study_dac_authorizations(study_id):
                 else:
                     # the result from lookup_user_by_email is an array:
                     for pcgl_user in user_dict:
-                        pcgl_user["study_authorizations"][study_dict["study_id"]] = study_auth
+                        pcgl_user["study_authorizations"][study_id] = study_auth
                         response, status_code = auth.write_user(pcgl_user, service=service)
                         if status_code == 200:
-                            result["success"].append(user_email)
+                            result["success"].append(pcgl_user)
                         else:
                             result["error"].append(f"failed to write auth for {user_email}")
             return result, 200
@@ -395,7 +407,7 @@ async def revoke_study_dac_authorizations(study_id):
     try:
         if auth.is_action_allowed_for_study(connexion.request, method="DELETE", path=f"/study/{study_id}/dac_authorizations", study=study_id):
             # for each user, look up user by email:
-            user_emails = list(set(study_dict["user_emails"]))
+            user_emails = list(set(study_dac_dict["user_emails"]))
             result = {"success": [], "error": []}
             for user_email in user_emails:
                 user_dicts, status_code = auth.lookup_user_by_email(user_email, service=service)
