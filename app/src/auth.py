@@ -304,10 +304,10 @@ def is_action_allowed_for_study(request, method=None, path=None, study=None):
 
 def write_user(user_dict, service=SERVICE_NAME):
     if "id" in user_dict:
-        comanage_id = user_dict.pop("id")
-        response, status_code = set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user_dict))
-        if status_code != 200:
-            response = {"error": f"User {comanage_id} was not found"}
+        comanage_id = user_dict["id"]
+    elif "comanage_id" in user_dict:
+        comanage_id = user_dict["comanage_id"]
+    response, status_code = set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user_dict))
     return response, status_code
 
 
@@ -486,14 +486,14 @@ def add_service(service_dict, request=None, service=SERVICE_NAME):
         if not updated_service:
             if action["endpoint"] in paths["read"][action["method"].lower()]:
                 return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
-        paths["read"][action["method"].lower()].append(action["endpoint"])
+            paths["read"][action["method"].lower()].append(action["endpoint"])
     for action in service_dict["editable"]:
         if action["method"].lower() not in paths["edit"]:
             paths["edit"][action["method"].lower()] = []
         if not updated_service:
             if action["endpoint"] in paths["edit"][action["method"].lower()]:
                 return {"error": f"endpoint {action["endpoint"]} is already registered"}, 500
-        paths["edit"][action["method"].lower()].append(action["endpoint"])
+            paths["edit"][action["method"].lower()].append(action["endpoint"])
     response, status_code = set_service_store_secret(service, key="paths", value=json.dumps({"paths": paths}))
 
     # write the service into its own store:
@@ -778,6 +778,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
                 return lookup_user, status_code
 
     response, status_code = get_service_store_secret(service, key=f"users/{comanage_id}")
+    response["comanage_id"] = comanage_id
     if status_code == 200 and not force:
         if "pcglid" in response:
             return response, status_code
@@ -811,20 +812,19 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
                     delete_service_store_secret(service, key=f"users/{email["Mail"]}")
     user["emails"] = emails
 
-    r, status_code = set_service_store_secret(service, key=f"users/{comanage_id}", value=json.dumps(user))
+    r, status_code = write_user(user, service=service)
 
-    response = user
     errors = []
     # set entries in user index
-    if "oidcsub" not in response:
+    if "oidcsub" not in user:
         errors.append({"error": f"user {comanage_id} does not have an oidcsub"})
     else:
-        oidcsub = response["oidcsub"]
+        oidcsub = user["oidcsub"]
         user_index[oidcsub] = str(comanage_id)
-    if "pcglid" not in response:
+    if "pcglid" not in user:
         errors.append({"error": f"user {comanage_id} does not have an PCGL ID"})
     else:
-        pcglid = response["pcglid"]
+        pcglid = user["pcglid"]
         user_index[pcglid] = str(comanage_id)
 
     for email in user["emails"]:
@@ -839,10 +839,7 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
     if len(errors) > 0:
         return errors, 500
 
-    if len(errors) > 0:
-        return errors, 500
-
-    return response, status_code
+    return user, status_code
 
 
 def get_groups_for_user(comanage_id, service=SERVICE_NAME):
