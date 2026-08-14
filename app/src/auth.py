@@ -576,8 +576,8 @@ def list_authz_for_user(pcgl_id, service=SERVICE_NAME):
         if status_code == 200:
             result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
             result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
-            result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
-            result["userinfo"]["data_admin"] = permissions["user_is_data_admin"]
+            result["userinfo"]["site_admin"] = permissions["site_admin"]
+            result["userinfo"]["data_admin"] = permissions["data_admin"]
         else:
             return permissions, status_code
         groups, status_code = get_groups_for_user(user_dict["comanage_id"], service=service)

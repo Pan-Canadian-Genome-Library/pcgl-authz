@@ -21,6 +21,8 @@ data_admin := data.calculate.data_admin if {
 	valid_token
 }
 
+else := false
+
 studies := data.calculate.studies if {
 	valid_token
 }
@@ -107,18 +109,6 @@ user_sub := data.idp.user_sub
 #
 # Debugging information for decision log
 #
-
-user_is_site_admin if {
-	user_id in data.vault.groups.admin
-}
-
-else := false
-
-user_is_data_admin if {
-	user_id in data.vault.groups.data_admin
-}
-
-else := false
 
 user_is_authorized if {
 	data.vault.user_auth.status_code == 200
