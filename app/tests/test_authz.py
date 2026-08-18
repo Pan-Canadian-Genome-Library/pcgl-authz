@@ -45,7 +45,7 @@ def test_setup_users(users):
         user_index = {}
 
     for user in users.keys():
-        response, status_code = auth.set_service_store_secret(service="test", key=f"users/{users[user]["comanage_id"]}", value=json.dumps(users[user]))
+        response, status_code = auth.write_user(users[user], service="test")
         assert status_code == 200
 
         # set entries in user index
@@ -53,6 +53,8 @@ def test_setup_users(users):
         user_index[oidcsub] = str(users[user]["comanage_id"])
         pcglid = users[user]["pcglid"]
         user_index[pcglid] = str(users[user]["comanage_id"])
+        for email in users[user]["emails"]:
+            user_index[email] = [str(users[user]["comanage_id"])]
 
     print(user_index)
     response, status_code = auth.set_service_store_secret(service="test", key=f"users/index", value=json.dumps(user_index))
@@ -313,6 +315,7 @@ def get_dacs():
             [
                 {
                     "study_id": "SYNTHETIC-1",
+                    "user_emails": ["user1@test.ca"],
                     "start_date": THE_PAST,
                     "end_date": THE_FUTURE
                 }
@@ -322,11 +325,13 @@ def get_dacs():
             [
                 {
                     "study_id": "SYNTHETIC-1",
+                    "user_emails": ["user2@test.ca"],
                     "start_date": THE_PAST,
                     "end_date": THE_FUTURE
                 },
                 {
                     "study_id": "SYNTHETIC-4",
+                    "user_emails": ["user2@test.ca"],
                     "start_date": THE_PAST,
                     "end_date": THE_FUTURE
                 }
@@ -336,11 +341,13 @@ def get_dacs():
             [
                 { # this study is already OVER
                     "study_id": "SYNTHETIC-1",
+                    "user_emails": ["user3@test.ca"],
                     "start_date": THE_PAST,
                     "end_date": THE_PAST
                 },
                 {
                     "study_id": "SYNTHETIC-4",
+                    "user_emails": ["user3@test.ca"],
                     "start_date": THE_PAST,
                     "end_date": THE_FUTURE
                 }
@@ -365,7 +372,9 @@ def test_add_dacs(user, input, service_uuid):
 
     headers["Authorization"] = f"Bearer admin"
     for study in input:
-        response = requests.post(f"{HOST}/user/{pcglid}", headers=headers, json=study)
+        study_id = study.pop("study_id")
+        response = requests.post(f"{HOST}/study/{study_id}/dac_authorizations", headers=headers, json=study)
+        study["study_id"] = study_id
         print(response.text)
         assert response.status_code == 200
 
@@ -435,7 +444,9 @@ def test_remove_dac(service_uuid):
     pcglid = response.json()["userinfo"]["pcgl_id"]
 
     headers["Authorization"] = f"Bearer admin"
-    response = requests.delete(f"{HOST}/user/{pcglid}/study/SYNTHETIC-1", headers=headers)
+    body = {"user_emails": response.json()["userinfo"]["emails"]}
+    response = requests.delete(f"{HOST}/study/SYNTHETIC-1/dac_authorizations", headers=headers, json=body)
+
     print(response.text)
 
     response = requests.get(f"{HOST}/user/{pcglid}", headers=headers)
