@@ -13,7 +13,6 @@ package calculate
 #     'study': name of study (optional)
 # }
 #
-import data.vault.user_id as user_id
 
 user_pcglid := data.vault.user_pcglid
 import rego.v1
