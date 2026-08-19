@@ -167,8 +167,8 @@ paths:
       - $ref: "#/components/parameters/ServiceId"
       - $ref: "#/components/parameters/ServiceToken"
     post:
-      summary: Add authorization information for a study
-      description: Add authorization information for a study
+      summary: Register or update a study with authz
+      description: Register or update a study with authz
       operationId: authz_operations.add_study_authorization
       security:
       - bearerAuth: []
@@ -183,7 +183,7 @@ paths:
                   $ref: '#/components/schemas/StudyAuthorization'
     get:
       summary: List registered studies
-      description: List studies authorized on server
+      description: List studies registered with authz
       operationId: authz_operations.list_study_authorizations
       security:
       - bearerAuth: []
@@ -219,7 +219,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/StudyAuthorization'
     delete:
-      description: Delete a study
+      description: Delete a study registered with authz
       operationId: authz_operations.remove_study_authorization
       security:
       - bearerAuth: []
@@ -240,8 +240,8 @@ paths:
           type: string
         required: true
     get:
-      summary: Get authorization information for a study
-      description: Get authorization information for a study
+      summary: Get DAC authorizations for a study
+      description: Get DAC authorizations for a study
       operationId: authz_operations.get_study_dac_authorizations
       security:
       # the bearer token must belong to a chair or member of the DAC responsible for this study
@@ -257,7 +257,7 @@ paths:
                   type: object
     post:
       summary: Add DAC authorizations for a study for a group of users
-      description: Authorize a study for a group of users (or update a study auth for a set of users)
+      description: Add DAC authorizations for a study for a group of users
       operationId: authz_operations.add_study_dac_authorizations
       security:
       # the bearer token must belong to the chair of the DAC responsible for this study
@@ -273,7 +273,7 @@ paths:
                 type: object
     delete:
       summary: Revoke DAC authorizations for a study for a group of users
-      description: Revoke a study for a group of users (or update a study auth for a set of users)
+      description: Revoke DAC authorizations for a study for a group of users
       operationId: authz_operations.revoke_study_dac_authorizations
       security:
       # the bearer token must belong to the chair of the DAC responsible for this study
