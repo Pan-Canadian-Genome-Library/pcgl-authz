@@ -36,6 +36,34 @@ curl "http://localhost:1235/group/admin" \
  -H 'Authorization: Bearer <token>'
 ```
 
+## Auditing decisions
+All decisions are tracked by Opa and can be found in the logs for the opa container. Each relevant decision contains a `decision_id` key and will contain the following information:
+```json
+{
+  "decision_id": "xxxx",
+  "erased": [
+    "/input/token"
+  ],
+  "input": {
+    "body": {
+      "method": "GET",
+      "path": "/study",
+      "study": "xxx"
+    }
+  },
+  "msg": "Decision Log",
+  "path": "permissions",
+  "result": {
+    "allowed": true,
+...
+    "valid_token": true
+  },
+  "time": "2026-08-19T18:06:47Z",
+  "timestamp": "2026-08-19T18:06:47.559902715Z"
+}
+```
+The `result` dictionary will include values that were relevant to the calculation of whether or not the method/path/study are allowed for the user whose token was provided. The value of `valid_token` will be true if the token was valid with the OIDC service.
+
 ## Pytest
 There is a basic pytest suite that is primarily designed to test the Opa functionality. Tests to exercise the API calls are still being developed.
 
