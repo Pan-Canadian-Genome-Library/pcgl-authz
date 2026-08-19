@@ -243,7 +243,7 @@ def list_study_authorizations():
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path="study"):
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path="/study/"):
             response, status_code = auth.list_studies(service=service)
             return response, status_code
         return {"error": "User is not authorized to list studies"}, 403
@@ -261,7 +261,7 @@ async def add_study_authorization():
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study"):
+        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study/"):
             response, status_code = auth.add_study(study, service=service)
             return response, status_code
         return {"error": "User is not authorized to add studies"}, 403

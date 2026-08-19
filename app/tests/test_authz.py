@@ -12,7 +12,6 @@ THE_FUTURE = str(date(TODAY.year + 1, TODAY.month, TODAY.day))
 
 # assumes that we are running pytest from the repo directory
 REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
-DEFAULTS_DIR = f"{REPO_DIR}/defaults"
 sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/src"))
 import authz_operations
 import auth
@@ -33,6 +32,15 @@ def test_setup_vault():
     # check to see if that worked:
     paths, status_code = auth.get_service_store_secret(service="test", key="paths")
     assert status_code == 404
+
+    with open(f"{REPO_DIR}/config.json") as f:
+        authz_service = json.load(f)["service"]
+        authz_service["authorization"]["client_id"] = os.getenv("PCGL_CLIENT_ID")
+        authz_service["authorization"]["client_secret"] = os.getenv("PCGL_CLIENT_SECRET")
+        auth.add_service(authz_service, service="test")
+
+    paths, status_code = auth.get_service_store_secret(service="test", key="paths")
+    print(paths)
 
     groups, status_code = auth.get_comanage_groups(service="test")
     assert status_code == 200
@@ -131,17 +139,17 @@ def test_remove_service():
     service_dict = response.json()
     assert "service_uuid" in service_dict
 
-    # list services: should have two, test and remove_me
+    # list services: should have three: authz, test, and remove_me
     response = requests.get(f"{HOST}/service", headers=headers)
-    assert len(response.json()) == 2
+    assert len(response.json()) == 3
 
     # remove remove_me
     response = requests.delete(f"{HOST}/service/remove_me", headers=headers)
 
-    # list services: should have one, test
+    # list services: should have two: authz and test
     response = requests.get(f"{HOST}/service", headers=headers)
     print(response.text)
-    assert len(response.json()) == 1
+    assert len(response.json()) == 2
 
 
 def get_service_token(service_uuid):
