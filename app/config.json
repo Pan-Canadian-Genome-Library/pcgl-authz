@@ -15,6 +15,14 @@
         },
         {
             "method": "GET",
+            "endpoint": "group/"
+        },
+        {
+            "method": "GET",
+            "endpoint": "group/?.*"
+        },
+        {
+            "method": "GET",
             "endpoint": "user/?.*"
         }
     ],
