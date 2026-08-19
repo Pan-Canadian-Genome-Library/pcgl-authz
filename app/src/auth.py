@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 import json
 import uuid
@@ -69,10 +70,13 @@ def handle_token(token, request=None):
               ]
             }
             token_info["sub"] = token
-            if "admin" in token:
-                token_info["groups"].append(PCGL_ADMIN_GROUP)
             if "data_admin" in token:
                 token_info["groups"].append(PCGL_DATA_ADMIN_GROUP)
+            elif "admin" in token:
+                token_info["groups"].append(PCGL_ADMIN_GROUP)
+            daco_match = re.match(r".+~(.+)", token)
+            if daco_match is not None and daco_match.group(1) != "":
+                token_info["groups"].append(daco_match.group(1))
             return token_info
 
         # look the token up in the cache:

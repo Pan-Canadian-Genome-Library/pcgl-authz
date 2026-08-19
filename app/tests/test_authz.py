@@ -462,6 +462,45 @@ def test_remove_dac(service_uuid):
     assert "SYNTHETIC-1" not in response.json()["study_authorizations"]["readable_studies"]
 
 
+def get_dac_authz_access():
+    # SYNTHETIC-2 is assigned the dac_id "PCGLDA0002"
+    return [
+        # user2 is a chair for PCGLDA0002, so can add a user to the DAC list for SYNTHETIC-2
+        ("user2", "PCGL:DACO:CHAIR:PCGLDA0002", "SYNTHETIC-2", True, True),
+        # SYNTHETIC-3 doesn't have a DAC, so user2 cannot add a user to the DAC list for SYNTHETIC-3
+        ("user2", "PCGL:DACO:CHAIR:PCGLDA0002", "SYNTHETIC-3", False, False),
+        # user1 is a member for PCGLDA0002, so can view the DAC list for SYNTHETIC-2, but cannot add
+        ("user1", "PCGL:DACO:MEMBER:PCGLDA0002", "SYNTHETIC-2", True, False),
+        # user3 has no DAC memberships, so cannot view any DACs for SYNTHETIC-2
+        ("user3", "", "SYNTHETIC-2", False, False)
+    ]
+
+
+@pytest.mark.parametrize('user, daco_group, study_id, can_view, can_add', get_dac_authz_access())
+def test_dac_access(user, daco_group, study_id, can_view, can_add, service_uuid, users):
+    headers = {
+        "Authorization": f"Bearer {user}~{daco_group}",
+        "X-Test-Mode": os.getenv("TEST_KEY")
+    }
+
+    headers["X-Service-Id"] = "test"
+    headers["X-Service-Token"] = get_service_token(service_uuid)
+
+    study = {
+        "study_id": study_id,
+        "user_emails": ["user8@test.ca"],
+        "start_date": THE_PAST,
+        "end_date": THE_FUTURE
+    }
+    response = requests.post(f"{HOST}/study/{study_id}/dac_authorizations", headers=headers, json=study)
+    print(response.text)
+    assert (response.status_code == 200) == can_add
+
+    response = requests.get(f"{HOST}/study/{study_id}/dac_authorizations", headers=headers)
+    print(response.text)
+    assert (response.status_code == 200) == can_view
+
+
 ####
 # Fixtures
 ####
@@ -500,6 +539,9 @@ def users():
             "oidcsub": "user2",
             "pcglid": "PCGLuser2",
             "emails": ["user2@test.ca"],
+            "groups": [
+                "PCGL:DACO:CHAIR:PCGLDA0002"
+            ],
             "study_authorizations": {}
         },
         "user3": {
@@ -545,6 +587,7 @@ def studies():
       },
       "SYNTHETIC-2": {
         "date_created": "2020-03-01",
+        "dac_id": "PCGLDA0002",
         "data_submitters": [
           "PCGLuser2"
         ],
