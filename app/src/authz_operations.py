@@ -388,7 +388,7 @@ async def add_study_dac_authorizations(study_id):
                         else:
                             result["error"].append(f"failed to write auth for {user_email}")
             return result, 200
-        return {"error": "User is not authorized to authorize studies"}, 403
+        return {"error": "User is not authorized to approve DAC authorizations"}, 403
     except auth.UserTokenError as e:
         return {"error": f"{type(e)} {str(e)}"}, 401
     except auth.AuthzError as e:
