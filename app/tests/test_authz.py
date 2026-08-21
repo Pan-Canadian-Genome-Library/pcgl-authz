@@ -381,6 +381,59 @@ def test_add_dacs(user, input, service_uuid):
             assert study["study_id"] in response.json()["study_authorizations"]["readable_studies"]
 
 
+def test_add_potential_user():
+    headers = {
+        "Authorization": f"Bearer admin",
+        "X-Test-Mode": os.getenv("TEST_KEY")
+    }
+
+    # this user doesn't exist yet:
+    response = requests.get(f"{HOST}/user/lookup", params={"email": "newuser@test.ca"}, headers=headers)
+    print(response.text)
+    assert response.status_code == 404
+
+    study = {
+        "study_id": "SYNTHETIC-4",
+        "user_emails": ["newuser@test.ca"],
+        "start_date": THE_PAST,
+        "end_date": THE_FUTURE
+    }
+    study_id = study.pop("study_id")
+    response = requests.post(f"{HOST}/study/{study_id}/dac_authorizations", headers=headers, json=study)
+    study["study_id"] = study_id
+    print(response.text)
+    assert response.status_code == 200
+
+    new_comanage_user = {
+        "comanage_id": "005",
+        "ids": [
+            {
+                "Identifier": "user5",
+                "Type": "oidcsub"
+            },
+            {
+                "Identifier": "PCGLuser5",
+                "Type": "pcglid"
+            }
+        ],
+        "emails": [
+            {
+                "Mail": "newuser@test.ca",
+                "Type": "official",
+                "Verified": True
+            }
+        ],
+        "study_authorizations": {}
+    }
+
+    auth.get_user_record(comanage_id=new_comanage_user["comanage_id"], test_ids=new_comanage_user["ids"], test_emails=new_comanage_user["emails"], service="test")
+
+    # this user should exist now:
+    response = requests.get(f"{HOST}/user/lookup", params={"email": "newuser@test.ca"}, headers=headers)
+    print(response.text)
+    assert response.status_code == 200
+
+
 def get_user_studies():
     return [
         (  # site admin should be able to read all studies
