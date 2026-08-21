@@ -737,8 +737,16 @@ def delete_service_store_secret(service=SERVICE_NAME, key=None, role_id=None, se
         return {"error": "no key specified"}, 400
 
     headers = get_vault_headers(token)
-    url = f"{VAULT_URL}/v1/{service}/{key}"
-    response = requests.delete(url, headers=headers)
+    keys = [key]
+    key_match = re.match(r"(.+)\/\*", key)
+    if key_match is not None:
+        r = requests.get(f"{VAULT_URL}/v1/{service}/{key_match.group(1)}", headers=headers, params={"scan": True})
+        if r.status_code == 200 and "keys" in r.json()["data"]:
+            keys = map(lambda x: f"{key_match.group(1)}/{x}", r.json()["data"]["keys"])
+    for k in keys:
+        url = f"{VAULT_URL}/v1/{service}/{k}"
+        response = requests.delete(url, headers=headers)
+    r = requests.get(f"{VAULT_URL}/v1/{service}", headers=headers, params={"scan": True})
     return response.text, response.status_code
 
 
