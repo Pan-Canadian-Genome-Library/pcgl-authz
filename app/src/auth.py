@@ -354,6 +354,39 @@ def lookup_user_by_email(email, service=SERVICE_NAME):
     return {"error": f"no user found for email {email}"}, 404
 
 
+def add_study_auth_for_email(user_email, study_auth, service=SERVICE_NAME):
+    ## study_auth should have the following structure:
+    # {
+    #     "study_id": study_id,
+    #     "role": one of "team_member", "data_submitter", "dac_authorization"
+    #     "start_date": start_date, # only relevant for dac_authz
+    #     "end_date": end_date # only relevant for dac_authz
+    #
+    # }
+    result = {"success": [], "error": []}
+
+    user_dict, status_code = lookup_user_by_email(user_email, service=service)
+    if status_code == 404:
+        # create a temp user
+        user_dict = {"study_authorizations": {}, "id": user_email}
+        user_dict["study_authorizations"][study_auth["study_id"]] = study_auth
+        response, status_code = write_user(user_dict, service=service)
+        if status_code == 200:
+            result["success"].append(user_email)
+        else:
+            result["error"].append(f"failed to write auth for {user_email}: {response}")
+    else:
+        # the result from lookup_user_by_email is an array:
+        for pcgl_user in user_dict:
+            pcgl_user["study_authorizations"][study_auth["study_id"]] = study_auth
+            response, status_code = write_user(pcgl_user, service=service)
+            if status_code == 200:
+                result["success"].append(pcgl_user)
+            else:
+                result["error"].append(f"failed to write auth for {user_email}")
+    return result
+
+
 ######
 # Studies
 ######
