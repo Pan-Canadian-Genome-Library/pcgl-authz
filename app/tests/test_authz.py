@@ -30,7 +30,7 @@ def test_setup_vault():
     print(auth.delete_service_store_secret(service="test", key="users/*"))
 
     # check to see if that worked:
-    paths, status_code = auth.get_service_store_secret(service="test", key="paths")
+    paths, status_code = auth.get_service_store_secret(service="test", key="users/index")
     assert status_code == 404
 
     with open(f"{REPO_DIR}/config.json") as f:
@@ -38,9 +38,6 @@ def test_setup_vault():
         authz_service["authorization"]["client_id"] = os.getenv("PCGL_CLIENT_ID")
         authz_service["authorization"]["client_secret"] = os.getenv("PCGL_CLIENT_SECRET")
         auth.add_service(authz_service, service="test")
-
-    paths, status_code = auth.get_service_store_secret(service="test", key="paths")
-    print(paths)
 
     groups, status_code = auth.get_comanage_groups(service="test")
     assert status_code == 200
