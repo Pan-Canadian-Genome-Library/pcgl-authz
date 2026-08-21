@@ -808,7 +808,7 @@ def verify_service_token(service=None, token=None, service_uuid=None, service_na
 ######
 
 
-def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE_NAME):
+def get_user_record(comanage_id=None, oidcsub=None, force=False, test_ids=None, test_emails=None, service=SERVICE_NAME):
     if comanage_id is None and oidcsub is None:
         return {"error": "no user specified"}, 500
 
@@ -840,27 +840,39 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
         user["study_authorizations"] = response["study_authorizations"]
 
     # set up identifiers
-    response = requests.get(f"{PCGL_API_URL}/registry/identifiers.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
-    if response.status_code == 200:
-        for ident in response.json()["Identifiers"]:
-            user[ident["Type"]] = ident["Identifier"]
+    identifiers = []
+    if test_ids is not None:
+        identifiers = test_ids
+    else:
+        response = requests.get(f"{PCGL_API_URL}/registry/identifiers.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
+        if response.status_code == 200:
+            identifiers = response.json()["Identifiers"]
+
+    for ident in identifiers:
+        user[ident["Type"]] = ident["Identifier"]
 
     # set up email addresses
     emails = []
+    if test_emails is not None:
+        emails = test_emails
+    else:
+        response = requests.get(f"{PCGL_API_URL}/registry/email_addresses.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
+        if response.status_code == 200:
+            emails = response.json()["EmailAddresses"]
+
+    email_dict = []
     email_addrs = []
-    response = requests.get(f"{PCGL_API_URL}/registry/email_addresses.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
-    if response.status_code == 200:
-        for email in response.json()["EmailAddresses"]:
-            if email["Mail"] not in email_addrs and email["Verified"]:
-                emails.append({"address": email["Mail"], "type": email["Type"]})
-                email_addrs.append(email["Mail"])
-                # see if we have any DAC auths for this email address:
-                temp_user, status_code = get_service_store_secret(service, key=f"users/{email["Mail"]}")
-                if status_code == 200:
-                    for auth in temp_user["study_authorizations"]:
-                        user["study_authorizations"][auth] = temp_user["study_authorizations"][auth]
-                    delete_service_store_secret(service, key=f"users/{email["Mail"]}")
-    user["emails"] = emails
+    for email in emails:
+        if email["Mail"] not in email_addrs and email["Verified"]:
+            email_dict.append({"address": email["Mail"], "type": email["Type"]})
+            email_addrs.append(email["Mail"])
+            # see if we have any DAC auths for this email address:
+            temp_user, status_code = get_service_store_secret(service, key=f"users/{email["Mail"]}")
+            if status_code == 200:
+                for auth in temp_user["study_authorizations"]:
+                    user["study_authorizations"][auth] = temp_user["study_authorizations"][auth]
+                delete_service_store_secret(service, key=f"users/{email["Mail"]}")
+    user["emails"] = email_dict
 
     r, status_code = write_user(user, service=service)
 

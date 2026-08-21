@@ -45,27 +45,17 @@ def test_setup_vault():
 
 def test_setup_users(users):
     user_index, status_code = auth.get_service_store_secret(service="test", key="users/index")
+    print(user_index, status_code)
+    assert status_code == 404
+    user_index = {}
+
+    for user in users:
+        r, s_c = auth.get_user_record(comanage_id=users[user]["comanage_id"], test_ids=users[user]["ids"], test_emails=users[user]["emails"], force=True, service="test")
+
+    user_index, status_code = auth.get_service_store_secret(service="test", key="users/index")
     print(user_index)
-    if status_code == 404:
-        user_index = {}
-
-    for user in users.keys():
-        response, status_code = auth.write_user(users[user], service="test")
-        assert status_code == 200
-
-        # set entries in user index
-        oidcsub = users[user]["oidcsub"]
-        user_index[oidcsub] = str(users[user]["comanage_id"])
-        pcglid = users[user]["pcglid"]
-        user_index[pcglid] = str(users[user]["comanage_id"])
-        for email in users[user]["emails"]:
-            user_index[email] = [str(users[user]["comanage_id"])]
-
-    print(user_index)
-    response, status_code = auth.set_service_store_secret(service="test", key=f"users/index", value=json.dumps(user_index))
-    print(response, status_code)
     assert status_code == 200
-
+    assert len(user_index) > 0
 
 def test_add_service(service_uuid):
     headers = {
@@ -292,13 +282,13 @@ def test_get_users(service_uuid, users, user):
     response = requests.get(f"{HOST}/user/me", headers=headers)
     print(response.text)
     assert "userinfo" in response.json()
-    assert response.json()["userinfo"]["pcgl_id"] == users[user]["pcglid"]
+    assert response.json()["userinfo"]["emails"][0]["address"] == users[user]["emails"][0]["Mail"]
 
     # get a user's info
     response = requests.get(f"{HOST}/user/{user}", headers=headers)
     print(response.text)
     assert "userinfo" in response.json()
-    assert response.json()["userinfo"]["pcgl_id"] == users[user]["pcglid"]
+    assert response.json()["userinfo"]["emails"][0]["address"] == users[user]["emails"][0]["Mail"]
 
 
 def test_admin_user(users):
@@ -311,7 +301,7 @@ def test_admin_user(users):
     response = requests.get(f"{HOST}/user/me", headers=headers)
     print(response.text)
     assert "userinfo" in response.json()
-    assert response.json()["userinfo"]["pcgl_id"] == users["admin"]["pcglid"]
+    assert response.json()["userinfo"]["emails"][0]["address"] == users["admin"]["emails"][0]["Mail"]
 
 
 def get_dacs():
@@ -449,7 +439,7 @@ def test_remove_dac(service_uuid):
     pcglid = response.json()["userinfo"]["pcgl_id"]
 
     headers["Authorization"] = f"Bearer admin"
-    body = {"user_emails": response.json()["userinfo"]["emails"]}
+    body = {"user_emails": ["user2@test.ca"]}
     response = requests.delete(f"{HOST}/study/SYNTHETIC-1/dac_authorizations", headers=headers, json=body)
 
     print(response.text)
@@ -512,47 +502,128 @@ def users():
     return {
         "admin": {
             "comanage_id": "000",
-            "oidcsub": "admin",
-            "pcglid": "PCGLuser0",
-            "emails": ["admin@test.ca"],
+            "ids": [
+                {
+                    "Identifier": "admin",
+                    "Type": "oidcsub"
+                },
+                {
+                    "Identifier": "PCGLuser0",
+                    "Type": "pcglid"
+                }
+            ],
+            "emails": [
+                {
+                    "Mail": "admin@test.ca",
+                    "Type": "official",
+                    "Verified": True
+                }
+            ],
             "study_authorizations": {}
         },
         "data-admin": {
             "comanage_id": "111",
-            "oidcsub": "data_admin",
-            "pcglid": "PCGLuser10",
-            "emails": ["data-admin@test.ca"],
+            "ids": [
+                {
+                    "Identifier": "data_admin",
+                    "Type": "oidcsub"
+                },
+                {
+                    "Identifier": "PCGLuser10",
+                    "Type": "pcglid"
+                }
+            ],
+            "emails": [
+                {
+                    "Mail": "data-admin@test.ca",
+                    "Type": "official",
+                    "Verified": True
+                }
+            ],
             "study_authorizations": {}
         },
         "user1": {
             "comanage_id": "001",
-            "oidcsub": "user1",
-            "pcglid": "PCGLuser1",
-            "emails": ["user1@test.ca"],
+            "ids": [
+                {
+                    "Identifier": "user1",
+                    "Type": "oidcsub"
+                },
+                {
+                    "Identifier": "PCGLuser1",
+                    "Type": "pcglid"
+                }
+            ],
+            "emails": [
+                {
+                    "Mail": "user1@test.ca",
+                    "Type": "official",
+                    "Verified": True
+                }
+            ],
             "study_authorizations": {}
         },
         "user2": {
             "comanage_id": "002",
-            "oidcsub": "user2",
-            "pcglid": "PCGLuser2",
-            "emails": ["user2@test.ca"],
-            "groups": [
-                "PCGL:DACO:CHAIR:PCGLDA0002"
+            "ids": [
+                {
+                    "Identifier": "user2",
+                    "Type": "oidcsub"
+                },
+                {
+                    "Identifier": "PCGLuser2",
+                    "Type": "pcglid"
+                }
+            ],
+            "emails": [
+                {
+                    "Mail": "user2@test.ca",
+                    "Type": "official",
+                    "Verified": True
+                }
             ],
             "study_authorizations": {}
         },
         "user3": {
             "comanage_id": "003",
-            "oidcsub": "user3",
-            "pcglid": "PCGLuser3",
-            "emails": ["user3@test.ca"],
+            "ids": [
+                {
+                    "Identifier": "user3",
+                    "Type": "oidcsub"
+                },
+                {
+                    "Identifier": "PCGLuser3",
+                    "Type": "pcglid"
+                }
+            ],
+            "emails": [
+                {
+                    "Mail": "user3@test.ca",
+                    "Type": "official",
+                    "Verified": True
+                }
+            ],
             "study_authorizations": {}
         },
         "user4": {
             "comanage_id": "004",
-            "oidcsub": "user4",
-            "pcglid": "PCGLuser4",
-            "emails": ["user4@test.ca"],
+            "ids": [
+                {
+                    "Identifier": "user4",
+                    "Type": "oidcsub"
+                },
+                {
+                    "Identifier": "PCGLuser4",
+                    "Type": "pcglid"
+                }
+            ],
+            "emails": [
+                {
+                    "Mail": "user4@test.ca",
+                    "Type": "official",
+                    "Verified": True
+                }
+            ],
             "study_authorizations": {}
         }
     }
