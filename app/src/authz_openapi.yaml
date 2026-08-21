@@ -311,6 +311,8 @@ paths:
                 type: array
                 items:
                   type: object
+        "404":
+          description: No user found
   /user/{pcgl_id}:
     parameters:
       - $ref: "#/components/parameters/ServiceId"

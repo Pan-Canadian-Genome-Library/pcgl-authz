@@ -351,7 +351,8 @@ def lookup_user_by_email(email, service=SERVICE_NAME):
                     user["id"] = comanage_id
                     result.append(user)
             return result, 200
-    return {"error": f"no user found for email {email}"}, 404
+        return {"error": f"no user found for email {email}"}, 404
+    return user_index, status_code
 
 
 def add_study_auth_for_email(user_email, study_auth, service=SERVICE_NAME):
