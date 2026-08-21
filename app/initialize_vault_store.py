@@ -1,6 +1,6 @@
 import json
 import os
-from src.auth import set_service_store_secret, reload_comanage, add_service
+from src.auth import set_service_store_secret, add_service, remove_service
 import sys
 import requests
 
