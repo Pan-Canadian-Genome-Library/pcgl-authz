@@ -13,7 +13,6 @@ package calculate
 #     'study': name of study (optional)
 # }
 #
-import data.vault.user_id as user_id
 
 user_pcglid := data.vault.user_pcglid
 import rego.v1
@@ -21,22 +20,13 @@ import rego.v1
 #
 # This user is a site admin if they have the site_admin role
 #
-import data.vault.groups as groups
 
 site_admin := true if {
 	"PCGL_ADMIN_GROUP" in data.idp.user_info.groups
 }
 
-else if {
-	user_id in groups.admin
-}
-
 data_admin := true if {
 	"PCGL_DATA_ADMIN_GROUP" in data.idp.user_info.groups
-}
-
-else if {
-	user_id in groups.data_admin
 }
 
 #

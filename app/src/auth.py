@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 import json
 import uuid
@@ -69,10 +70,13 @@ def handle_token(token, request=None):
               ]
             }
             token_info["sub"] = token
-            if "admin" in token:
-                token_info["groups"].append(PCGL_ADMIN_GROUP)
             if "data_admin" in token:
                 token_info["groups"].append(PCGL_DATA_ADMIN_GROUP)
+            elif "admin" in token:
+                token_info["groups"].append(PCGL_ADMIN_GROUP)
+            daco_match = re.match(r".+~(.+)", token)
+            if daco_match is not None and daco_match.group(1) != "":
+                token_info["groups"].append(daco_match.group(1))
             return token_info
 
         # look the token up in the cache:
@@ -347,7 +351,41 @@ def lookup_user_by_email(email, service=SERVICE_NAME):
                     user["id"] = comanage_id
                     result.append(user)
             return result, 200
-    return {"error": f"no user found for email {email}"}, 404
+        return {"error": f"no user found for email {email}"}, 404
+    return user_index, status_code
+
+
+def add_study_auth_for_email(user_email, study_auth, service=SERVICE_NAME):
+    ## study_auth should have the following structure:
+    # {
+    #     "study_id": study_id,
+    #     "role": one of "team_member", "data_submitter", "dac_authorization"
+    #     "start_date": start_date, # only relevant for dac_authz
+    #     "end_date": end_date # only relevant for dac_authz
+    #
+    # }
+    result = {"success": [], "error": []}
+
+    user_dict, status_code = lookup_user_by_email(user_email, service=service)
+    if status_code == 404:
+        # create a temp user
+        user_dict = {"study_authorizations": {}, "id": user_email}
+        user_dict["study_authorizations"][study_auth["study_id"]] = study_auth
+        response, status_code = write_user(user_dict, service=service)
+        if status_code == 200:
+            result["success"].append(user_email)
+        else:
+            result["error"].append(f"failed to write auth for {user_email}: {response}")
+    else:
+        # the result from lookup_user_by_email is an array:
+        for pcgl_user in user_dict:
+            pcgl_user["study_authorizations"][study_auth["study_id"]] = study_auth
+            response, status_code = write_user(pcgl_user, service=service)
+            if status_code == 200:
+                result["success"].append(pcgl_user)
+            else:
+                result["error"].append(f"failed to write auth for {user_email}")
+    return result
 
 
 ######
@@ -387,6 +425,10 @@ def add_study(study_auth, service=SERVICE_NAME):
         if "date_created" not in study_auth:
             from datetime import datetime
             study_auth["date_created"] = datetime.today().strftime('%Y-%m-%d')
+
+        if "dac_authorizations" not in study_auth:
+            # dac_auths are keyed by emails and contain date ranges
+            study_auth["dac_authorizations"] = {}
         response, status_code = set_service_store_secret(service, key=f"studies/{study_id}", value=json.dumps({study_id: study_auth}))
         if status_code < 300:
             # update the values for the study list
@@ -572,8 +614,8 @@ def list_authz_for_user(pcgl_id, service=SERVICE_NAME):
         if status_code == 200:
             result["study_authorizations"]["editable_studies"] = permissions["editable_studies"]
             result["study_authorizations"]["readable_studies"] = permissions["readable_studies"]
-            result["userinfo"]["site_admin"] = permissions["user_is_site_admin"]
-            result["userinfo"]["data_admin"] = permissions["user_is_data_admin"]
+            result["userinfo"]["site_admin"] = permissions["site_admin"]
+            result["userinfo"]["data_admin"] = permissions["data_admin"]
         else:
             return permissions, status_code
         groups, status_code = get_groups_for_user(user_dict["comanage_id"], service=service)
@@ -696,8 +738,16 @@ def delete_service_store_secret(service=SERVICE_NAME, key=None, role_id=None, se
         return {"error": "no key specified"}, 400
 
     headers = get_vault_headers(token)
-    url = f"{VAULT_URL}/v1/{service}/{key}"
-    response = requests.delete(url, headers=headers)
+    keys = [key]
+    key_match = re.match(r"(.+)\/\*", key)
+    if key_match is not None:
+        r = requests.get(f"{VAULT_URL}/v1/{service}/{key_match.group(1)}", headers=headers, params={"scan": True})
+        if r.status_code == 200 and "keys" in r.json()["data"]:
+            keys = map(lambda x: f"{key_match.group(1)}/{x}", r.json()["data"]["keys"])
+    for k in keys:
+        url = f"{VAULT_URL}/v1/{service}/{k}"
+        response = requests.delete(url, headers=headers)
+    r = requests.get(f"{VAULT_URL}/v1/{service}", headers=headers, params={"scan": True})
     return response.text, response.status_code
 
 
@@ -758,7 +808,7 @@ def verify_service_token(service=None, token=None, service_uuid=None, service_na
 ######
 
 
-def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE_NAME):
+def get_user_record(comanage_id=None, oidcsub=None, force=False, test_ids=None, test_emails=None, service=SERVICE_NAME):
     if comanage_id is None and oidcsub is None:
         return {"error": "no user specified"}, 500
 
@@ -790,27 +840,39 @@ def get_user_record(comanage_id=None, oidcsub=None, force=False, service=SERVICE
         user["study_authorizations"] = response["study_authorizations"]
 
     # set up identifiers
-    response = requests.get(f"{PCGL_API_URL}/registry/identifiers.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
-    if response.status_code == 200:
-        for ident in response.json()["Identifiers"]:
-            user[ident["Type"]] = ident["Identifier"]
+    identifiers = []
+    if test_ids is not None:
+        identifiers = test_ids
+    else:
+        response = requests.get(f"{PCGL_API_URL}/registry/identifiers.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
+        if response.status_code == 200:
+            identifiers = response.json()["Identifiers"]
+
+    for ident in identifiers:
+        user[ident["Type"]] = ident["Identifier"]
 
     # set up email addresses
     emails = []
+    if test_emails is not None:
+        emails = test_emails
+    else:
+        response = requests.get(f"{PCGL_API_URL}/registry/email_addresses.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
+        if response.status_code == 200:
+            emails = response.json()["EmailAddresses"]
+
+    email_dict = []
     email_addrs = []
-    response = requests.get(f"{PCGL_API_URL}/registry/email_addresses.json", params={"copersonid": comanage_id}, auth=(PCGL_CORE_API_USER, PCGL_CORE_API_KEY))
-    if response.status_code == 200:
-        for email in response.json()["EmailAddresses"]:
-            if email["Mail"] not in email_addrs and email["Verified"]:
-                emails.append({"address": email["Mail"], "type": email["Type"]})
-                email_addrs.append(email["Mail"])
-                # see if we have any DAC auths for this email address:
-                temp_user, status_code = get_service_store_secret(service, key=f"users/{email["Mail"]}")
-                if status_code == 200:
-                    for auth in temp_user["study_authorizations"]:
-                        user["study_authorizations"][auth] = temp_user["study_authorizations"][auth]
-                    delete_service_store_secret(service, key=f"users/{email["Mail"]}")
-    user["emails"] = emails
+    for email in emails:
+        if email["Mail"] not in email_addrs and email["Verified"]:
+            email_dict.append({"address": email["Mail"], "type": email["Type"]})
+            email_addrs.append(email["Mail"])
+            # see if we have any DAC auths for this email address:
+            temp_user, status_code = get_service_store_secret(service, key=f"users/{email["Mail"]}")
+            if status_code == 200:
+                for auth in temp_user["study_authorizations"]:
+                    user["study_authorizations"][auth] = temp_user["study_authorizations"][auth]
+                delete_service_store_secret(service, key=f"users/{email["Mail"]}")
+    user["emails"] = email_dict
 
     r, status_code = write_user(user, service=service)
 

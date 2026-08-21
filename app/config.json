@@ -7,7 +7,19 @@
     "readable": [
         {
             "method": "GET",
+            "endpoint": "study/"
+        },
+        {
+            "method": "GET",
             "endpoint": "study/?.*"
+        },
+        {
+            "method": "GET",
+            "endpoint": "group/"
+        },
+        {
+            "method": "GET",
+            "endpoint": "group/?.*"
         },
         {
             "method": "GET",
@@ -17,15 +29,15 @@
     "editable": [
         {
             "method": "POST",
-            "endpoint": "study/?.*"
+            "endpoint": "study/"
         },
         {
             "method": "POST",
-            "endpoint": "user/?.*"
+            "endpoint": "study/?.*"
         },
         {
             "method": "DELETE",
-            "endpoint": "user/?.*"
+            "endpoint": "study/?.*"
         }
     ]
   }

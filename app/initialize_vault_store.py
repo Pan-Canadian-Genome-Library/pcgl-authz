@@ -1,6 +1,6 @@
 import json
 import os
-from src.auth import set_service_store_secret, reload_comanage, add_service
+from src.auth import set_service_store_secret, add_service, remove_service
 import sys
 import requests
 
@@ -26,6 +26,7 @@ try:
         authz_service = json.load(f)["service"]
         authz_service["authorization"]["client_id"] = os.getenv("PCGL_CLIENT_ID")
         authz_service["authorization"]["client_secret"] = os.getenv("PCGL_CLIENT_SECRET")
+        remove_service(authz_service["service_id"])
         add_service(authz_service)
 
 except Exception as e:

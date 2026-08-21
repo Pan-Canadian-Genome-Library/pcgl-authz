@@ -243,7 +243,7 @@ def list_study_authorizations():
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path="study"):
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path="/study/"):
             response, status_code = auth.list_studies(service=service)
             return response, status_code
         return {"error": "User is not authorized to list studies"}, 403
@@ -261,7 +261,7 @@ async def add_study_authorization():
     if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
         service = "test"
     try:
-        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study"):
+        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study/"):
             response, status_code = auth.add_study(study, service=service)
             return response, status_code
         return {"error": "User is not authorized to add studies"}, 403
@@ -271,60 +271,6 @@ async def add_study_authorization():
         return {"error": f"{type(e)} {str(e)}"}, 403
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
-
-
-@app.route('/study/<path:study_id>')
-async def authorize_study_for_users(study_id):
-    study_dict = await connexion.request.json()
-    study_dict["study_id"] = study_id
-    service = "opa"
-    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
-        service = "test"
-    try:
-        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study/{study_id}", study=study_dict["study_id"]):
-            # we need to check to see if the study even exists in the system
-            all_studies, status_code = auth.list_studies(service=service)
-            if status_code != 200:
-                return all_studies, status_code
-            if study_dict["study_id"] not in all_studies:
-                return {"error": f"Study {study_dict['study_id']} does not exist in {all_studies}"}
-
-            # for each user, look up user by email:
-            user_emails = list(set(study_dict["user_emails"]))
-            result = {"success": [], "error": []}
-            study_auth = {
-                "study_id": study_dict["study_id"],
-                "start_date": study_dict["start_date"],
-                "end_date": study_dict["end_date"]
-            }
-            for user_email in user_emails:
-                user_dict, status_code = auth.lookup_user_by_email(user_email)
-                if status_code == 404:
-                    # create a temp user
-                    user_dict = {"study_authorizations": {}, "id": user_email}
-                    user_dict["study_authorizations"][study_dict["study_id"]] = study_auth
-                    response, status_code = auth.write_user(user_dict, service=service)
-                    if status_code == 200:
-                        result["success"].append(user_email)
-                    else:
-                        result["error"].append(f"failed to write auth for {user_email}: {response}")
-                else:
-                    # the result from lookup_user_by_email is an array:
-                    for pcgl_user in user_dict:
-                        pcgl_user["study_authorizations"][study_dict["study_id"]] = study_auth
-                        response, status_code = auth.write_user(pcgl_user, service=service)
-                        if status_code == 200:
-                            result["success"].append(user_email)
-                        else:
-                            result["error"].append(f"failed to write auth for {user_email}")
-            return result, 200
-        return {"error": "User is not authorized to authorize studies"}, 403
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
-    except auth.AuthzError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 403
-    # except Exception as e:
-    #     return {"error": f"{type(e)} {str(e)}"}, 500
 
 
 @app.route('/study/<path:study_id>')
@@ -362,9 +308,117 @@ def remove_study_authorization(study_id):
     except Exception as e:
         return {"error": f"{type(e)} {str(e)}"}, 500
 
+####
+# DAC Authorizations
+####
+
+@app.route('/study/<path:study_id>/dac_authorizations')
+def get_study_dac_authorizations(study_id):
+    service = "opa"
+    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service = "test"
+    try:
+        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/study/{study_id}/dac_authorizations", study=study_id):
+            response, status_code = auth.get_study(study_id, service=service)
+            if status_code == 200:
+                dac_auths = []
+                # dac_auths are keyed by emails and contain date ranges
+                for email in response["dac_authorizations"]:
+                    dac_auths.append({"email": email, "start_date": response["dac_authorizations"][email]["start_date"], "end_date": response["dac_authorizations"][email]["end_date"]})
+                return dac_auths, status_code
+            else:
+                return {"error": f"Study {study_id} not found"}, 404
+        return {"error": "User is not authorized to get studies"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
+    except Exception as e:
+        return {"error": f"{type(e)} {str(e)}"}, 500
+
+
+@app.route('/study/<path:study_id>/dac_authorizations')
+async def add_study_dac_authorizations(study_id):
+    study_dac_dict = await connexion.request.json()
+    service = "opa"
+    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service = "test"
+    try:
+        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/study/{study_id}/dac_authorizations", study=study_id):
+            # for each user, look up user by email:
+            user_emails = list(set(study_dac_dict["user_emails"]))
+
+            # find the study and add these emails to it:
+            study_dict, status_code = auth.get_study(study_id, service=service)
+            if status_code == 200:
+                # add the emails to the study_dict
+                # dac_auths are keyed by emails and contain date ranges
+                for user_email in user_emails:
+                    study_dict["dac_authorizations"][user_email] = {
+                        "start_date": study_dac_dict["start_date"],
+                        "end_date": study_dac_dict["end_date"]
+                    }
+            else:
+                return {"error": f"Study {study_dac_dict['study_id']} does not exist"}
+
+            result = {"success": [], "error": []}
+            study_auth = {
+                "study_id": study_id,
+                "role": "dac_authorization",
+                "start_date": study_dac_dict["start_date"],
+                "end_date": study_dac_dict["end_date"]
+            }
+            for user_email in user_emails:
+                res = auth.add_study_auth_for_email(user_email, study_auth, service=service)
+                result["success"].extend(res["success"])
+                result["error"].extend(res["error"])
+            return result, 200
+        return {"error": "User is not authorized to approve DAC authorizations"}, 403
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
+# raise these as exceptions so they'll be logged
+#     except Exception as e:
+#         return {"error": f"{type(e)} {str(e)}"}, 500
+
+
+@app.route('/study/<path:study_id>/dac_authorizations')
+async def revoke_study_dac_authorizations(study_id):
+    study_dac_dict = await connexion.request.json()
+    service = "opa"
+    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
+        service = "test"
+    try:
+        if auth.is_action_allowed_for_study(connexion.request, method="DELETE", path=f"/study/{study_id}/dac_authorizations", study=study_id):
+            # for each user, look up user by email:
+            user_emails = list(set(study_dac_dict["user_emails"]))
+            result = {"success": [], "error": []}
+            for user_email in user_emails:
+                user_dicts, status_code = auth.lookup_user_by_email(user_email, service=service)
+                if status_code == 200:
+                    # the result from lookup_user_by_email is an array:
+                    for user_dict in user_dicts:
+                        for p in user_dict["study_authorizations"]:
+                            if p == study_id:
+                                user_dict["study_authorizations"].pop(study_id)
+                                response, status_code = auth.write_user(user_dict, service=service)
+                                result["success"].append(user_email)
+                else:
+                    result["error"].append(f"failed to revoke for {user_email}: {user_dicts}")
+        else:
+            return {"error": "User is not authorized to revoke DAC authorizations"}, 403
+        return result, 200
+    except auth.UserTokenError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 401
+    except auth.AuthzError as e:
+        return {"error": f"{type(e)} {str(e)}"}, 403
+    except Exception as e:
+        return {"error": f"{type(e)} {str(e)}"}, 500
+
 
 ####
-# DAC authorization for users
+# Users
 ####
 
 @app.route('/user/<path:pcgl_id>')
@@ -379,86 +433,6 @@ def list_authz_for_user(pcgl_id):
     except auth.AuthzError as e:
         return {"error": f"{type(e)} {str(e)}"}, 403
     return user_dict, status_code
-
-
-@app.route('/user/<path:pcgl_id>')
-async def authorize_study_for_user(pcgl_id):
-    study_dict = await connexion.request.json()
-    service = "opa"
-    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
-        service = "test"
-    try:
-        if auth.is_action_allowed_for_study(connexion.request, method="POST", path=f"/user/{pcgl_id}", study=study_dict["study_id"]):
-            # we need to check to see if the study even exists in the system
-            all_studies, status_code = auth.list_studies(service=service)
-            if status_code != 200:
-                return all_studies, status_code
-            if study_dict["study_id"] not in all_studies:
-                return {"error": f"Study {study_dict['study_id']} does not exist in {all_studies}"}
-
-            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id, service=service)
-            if status_code == 200:
-                user_dict["study_authorizations"][study_dict["study_id"]] = study_dict
-                response, status_code = auth.write_user(user_dict, service=service)
-                if status_code == 200:
-                    return list(response["study_authorizations"].values()), 200
-                return response, status_code
-            return user_dict, status_code
-        return {"error": "User is not authorized to authorize studies"}, 403
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
-    except auth.AuthzError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 403
-    except Exception as e:
-        return {"error": f"{type(e)} {str(e)}"}, 500
-
-
-@app.route('/user/<path:pcgl_id>/study/<path:study_id>')
-def get_study_for_user(pcgl_id, study_id):
-    service = "opa"
-    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
-        service = "test"
-    try:
-        if auth.is_action_allowed_for_study(connexion.request, method="GET", path=f"/user/{pcgl_id}/study/{study_id}", study=study_id):
-            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id, service=service)
-            if status_code != 200:
-                return user_dict, status_code
-            for p in user_dict["study_authorizations"]:
-                if p == study_id:
-                    return user_dict["study_authorizations"][p], 200
-            return {"error": f"No study {study_id} found for user"}, status_code
-        return {"error": "User is not authorized to get studies"}, 403
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
-    except auth.AuthzError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 403
-    except Exception as e:
-        return {"error": f"{type(e)} {str(e)}"}, 500
-
-
-@app.route('/user/<path:pcgl_id>/study/<path:study_id>')
-def remove_study_for_user(pcgl_id, study_id):
-    service = "opa"
-    if "X-Test-Mode" in connexion.request.headers and connexion.request.headers["X-Test-Mode"] == os.getenv("TEST_KEY"):
-        service = "test"
-    try:
-        if auth.is_action_allowed_for_study(connexion.request, method="DELETE", path=f"/user/{pcgl_id}/study/{study_id}", study=study_id):
-            user_dict, status_code = auth.get_user_by_pcglid(pcgl_id, service=service)
-            if status_code != 200:
-                return user_dict, status_code
-            for p in user_dict["study_authorizations"]:
-                if p == study_id:
-                    user_dict["study_authorizations"].pop(study_id)
-                    response, status_code = auth.write_user(user_dict, service=service)
-                    return list(response["study_authorizations"].values()), status_code
-            return {"error": f"No study {study_id} found for user"}, status_code
-        return {"error": "User is not authorized to delete studies"}, 403
-    except auth.UserTokenError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 401
-    except auth.AuthzError as e:
-        return {"error": f"{type(e)} {str(e)}"}, 403
-    except Exception as e:
-        return {"error": f"{type(e)} {str(e)}"}, 500
 
 
 def lookup_user(email=None):

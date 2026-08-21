@@ -39,9 +39,6 @@ vault_service_headers := {"X-Vault-Token": input.token, "X-Vault-Namespace": ns}
 # paths are the paths authorized for methods, used by permissions.rego
 paths := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "paths"]), "headers": vault_headers}).body.data.paths
 
-# groups are site-wide authorizations, used by permissions.rego and authz.rego
-groups := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "groups"]), "headers": vault_headers}).body.data
-
 all_studies := http.send({"method": "get", "url": concat("/", ["VAULT_URL/v1", test, "studies"]), "headers": vault_headers}).body.data.studies
 
 study_auths[p] := study if {

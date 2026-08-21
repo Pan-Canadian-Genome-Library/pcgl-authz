@@ -20,7 +20,7 @@ create_service_store() {
    docker exec $bao sh -c "${cmd}"
 
    echo ">> setting up ${service} store policy"
-   docker exec $bao sh -c "echo 'path \"${service}/*\" {capabilities = [\"create\", \"update\", \"read\", \"delete\"]}' >> ${service}-policy.hcl; bao policy write ${service} ${service}-policy.hcl"
+   docker exec $bao sh -c "echo 'path \"${service}/*\" {capabilities = [\"create\", \"update\", \"read\", \"delete\", \"scan\"]}' >> ${service}-policy.hcl; bao policy write ${service} ${service}-policy.hcl"
 
    echo ">> save the role id to secrets"
 
